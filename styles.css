@@ -125,7 +125,12 @@ button:disabled {
 }
 
 .section-head.stacked {
+  flex-direction: column;
   align-items: stretch;
+}
+
+.section-head > * {
+  min-width: 0;
 }
 
 .section-head h2 {
@@ -422,6 +427,7 @@ button:disabled {
 .file-import {
   display: grid;
   gap: 7px;
+  min-width: 0;
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
@@ -433,6 +439,8 @@ button:disabled {
 .inline-form input,
 .file-import input {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 44px;
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -440,6 +448,23 @@ button:disabled {
   background: #fff;
   padding: 0 12px;
   outline: none;
+}
+
+.field input[type="date"],
+.field input[type="month"],
+.compact-field input[type="date"],
+.compact-field input[type="month"] {
+  display: block;
+  font-size: 16px;
+  text-align: center;
+}
+
+.field input[type="date"]::-webkit-date-and-time-value,
+.field input[type="month"]::-webkit-date-and-time-value,
+.compact-field input[type="date"]::-webkit-date-and-time-value,
+.compact-field input[type="month"]::-webkit-date-and-time-value {
+  margin: 0;
+  text-align: center;
 }
 
 .field input:focus,
@@ -735,6 +760,15 @@ button:disabled {
   .app-main {
     padding-right: 20px;
     padding-left: 20px;
+  }
+
+  .section-head.stacked {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .compact-field {
+    width: min(220px, 42vw);
   }
 
   .form-grid,
