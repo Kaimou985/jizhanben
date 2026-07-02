@@ -153,18 +153,48 @@
     els.dailyTotalForm.addEventListener("submit", saveDailyTotal);
     els.monthlyTotalForm.addEventListener("submit", saveMonthlyTotal);
 
+    els.dailyTotalDate.addEventListener("change", function () {
+      els.dailyTotalDate.value = normalizeDateValue(els.dailyTotalDate.value) || state.selectedDay;
+    });
+    els.dailyTotalDate.addEventListener("blur", function () {
+      els.dailyTotalDate.value = normalizeDateValue(els.dailyTotalDate.value) || state.selectedDay;
+    });
+    els.monthlyTotalMonth.addEventListener("change", function () {
+      els.monthlyTotalMonth.value = normalizeMonthValue(els.monthlyTotalMonth.value) || state.selectedMonth;
+    });
+    els.monthlyTotalMonth.addEventListener("blur", function () {
+      els.monthlyTotalMonth.value = normalizeMonthValue(els.monthlyTotalMonth.value) || state.selectedMonth;
+    });
+
     els.dateInput.addEventListener("change", function () {
+      els.dateInput.value = normalizeDateValue(els.dateInput.value) || state.selectedDay;
       if (els.dateInput.value) els.dailyTotalDate.value = els.dateInput.value;
+      renderFormDay();
+    });
+    els.dateInput.addEventListener("blur", function () {
+      els.dateInput.value = normalizeDateValue(els.dateInput.value) || state.selectedDay;
       renderFormDay();
     });
 
     els.dayPicker.addEventListener("change", function () {
-      state.selectedDay = els.dayPicker.value || toDateInputValue(new Date());
+      state.selectedDay = normalizeDateValue(els.dayPicker.value) || toDateInputValue(new Date());
+      els.dayPicker.value = state.selectedDay;
+      renderDay();
+    });
+    els.dayPicker.addEventListener("blur", function () {
+      state.selectedDay = normalizeDateValue(els.dayPicker.value) || state.selectedDay;
+      els.dayPicker.value = state.selectedDay;
       renderDay();
     });
 
     els.monthPicker.addEventListener("change", function () {
       state.selectedMonth = normalizeMonthValue(els.monthPicker.value) || toMonthInputValue(new Date());
+      els.monthPicker.value = state.selectedMonth;
+      els.monthlyTotalMonth.value = state.selectedMonth;
+      renderMonth();
+    });
+    els.monthPicker.addEventListener("blur", function () {
+      state.selectedMonth = normalizeMonthValue(els.monthPicker.value) || state.selectedMonth;
       els.monthPicker.value = state.selectedMonth;
       els.monthlyTotalMonth.value = state.selectedMonth;
       renderMonth();
@@ -274,14 +304,15 @@
     event.preventDefault();
 
     var amount = Number(els.amountInput.value);
-    var date = els.dateInput.value;
+    var date = normalizeDateValue(els.dateInput.value);
     var category = els.categoryInput.value;
     var note = els.noteInput.value.replace(/^\s+|\s+$/g, "");
 
     if (!date || !category || !isFinite(amount) || amount <= 0) {
-      alert("请填写有效的日期、分类和金额。");
+      alert("请填写有效的日期、分类和金额。日期格式例如：2026-07-02。");
       return;
     }
+    els.dateInput.value = date;
 
     var entry = {
       id: createId(),
@@ -311,15 +342,16 @@
   function saveDailyTotal(event) {
     event.preventDefault();
 
-    var date = els.dailyTotalDate.value;
+    var date = normalizeDateValue(els.dailyTotalDate.value);
     var income = readMoneyInput(els.dailyTotalIncome);
     var expense = readMoneyInput(els.dailyTotalExpense);
     var note = els.dailyTotalNote.value.replace(/^\s+|\s+$/g, "");
 
     if (!isDateInputValue(date) || (income <= 0 && expense <= 0)) {
-      alert("请选择日期，并至少填写总收入或总支出中的一项。");
+      alert("请填写有效日期，并至少填写总收入或总支出中的一项。日期格式例如：2026-07-02。");
       return;
     }
+    els.dailyTotalDate.value = date;
 
     state.dailyTotals.push({
       id: createId(),
@@ -1296,9 +1328,33 @@
   }
 
   function normalizeMonthValue(value) {
-    if (/^\d{4}-\d{2}$/.test(value)) return value;
-    if (/^\d{4}-\d{1}$/.test(value)) return value.slice(0, 5) + "0" + value.slice(5);
+    value = String(value || "").replace(/^\s+|\s+$/g, "");
+    if (/^\d{6}$/.test(value)) {
+      value = value.slice(0, 4) + "-" + value.slice(4, 6);
+    }
+    value = value.replace(/[./年]/g, "-").replace(/月/g, "");
+    var parts = value.split("-");
+    if (parts.length === 2 && /^\d{4}$/.test(parts[0]) && /^\d{1,2}$/.test(parts[1])) {
+      var monthNumber = Number(parts[1]);
+      if (monthNumber >= 1 && monthNumber <= 12) {
+        return parts[0] + "-" + pad2(monthNumber);
+      }
+    }
     return "";
+  }
+
+  function normalizeDateValue(value) {
+    value = String(value || "").replace(/^\s+|\s+$/g, "");
+    if (/^\d{8}$/.test(value)) {
+      value = value.slice(0, 4) + "-" + value.slice(4, 6) + "-" + value.slice(6, 8);
+    }
+    value = value.replace(/[./年]/g, "-").replace(/月/g, "-").replace(/日/g, "");
+    var parts = value.split("-");
+    if (parts.length === 3 && /^\d{4}$/.test(parts[0]) && /^\d{1,2}$/.test(parts[1]) && /^\d{1,2}$/.test(parts[2])) {
+      var normalized = parts[0] + "-" + pad2(Number(parts[1])) + "-" + pad2(Number(parts[2]));
+      return isDateInputValue(normalized) ? normalized : "";
+    }
+    return isDateInputValue(value) ? value : "";
   }
 
   function isDateInputValue(value) {
