@@ -3,6 +3,7 @@
   var CATEGORY_KEY = "ledger.categories.v1";
   var DAILY_TOTAL_KEY = "ledger.dailyTotals.v1";
   var MONTHLY_TOTAL_KEY = "ledger.monthlyTotals.v1";
+  var SAVINGS_KEY = "ledger.savings.v1";
 
   var defaultCategories = {
     income: ["工资", "奖金", "副业", "投资", "退款", "其他收入"],
@@ -13,10 +14,12 @@
     entries: [],
     dailyTotals: [],
     monthlyTotals: [],
+    savings: [],
     categories: cloneData(defaultCategories),
     entryType: "expense",
     selectedDay: toDateInputValue(new Date()),
-    selectedMonth: toMonthInputValue(new Date())
+    selectedMonth: toMonthInputValue(new Date()),
+    overviewStatPeriod: "day"
   };
 
   var currency;
@@ -24,6 +27,7 @@
   var weekdayFormatter;
   var els = {};
   var pickerControls = [];
+  var activeOverviewPicker = null;
 
   try {
     currency = new Intl.NumberFormat("zh-CN", {
@@ -55,6 +59,13 @@
     els.monthPicker.value = state.selectedMonth;
     els.dailyTotalDate.value = state.selectedDay;
     els.monthlyTotalMonth.value = state.selectedMonth;
+    els.overviewStatDay.value = state.selectedDay;
+    els.overviewStatMonth.value = state.selectedMonth;
+    els.overviewStatYear.value = state.selectedDay.slice(0, 4);
+    els.overviewPieDay.value = state.selectedDay;
+    els.overviewPieMonth.value = state.selectedMonth;
+    els.overviewPieYear.value = state.selectedDay.slice(0, 4);
+    els.savingsDate.value = state.selectedDay;
     setupPickerControls();
     renderAll();
     registerServiceWorker();
@@ -65,20 +76,34 @@
       "quickAddBtn",
       "seedSampleBtn",
       "todayText",
+      "overviewStatPickerButton",
+      "overviewBalanceLabel",
+      "overviewStatDay",
+      "overviewStatMonth",
+      "overviewStatYear",
       "yearBalance",
       "yearIncome",
       "yearExpense",
-      "todayIncome",
-      "todayExpense",
-      "monthIncome",
-      "monthExpense",
       "comparePieHint",
+      "overviewPieDay",
+      "overviewPieMonth",
+      "overviewPieYear",
       "todayPieHint",
       "todayComparePie",
       "monthPieHint",
       "monthComparePie",
       "yearPieHint",
       "yearComparePie",
+      "overviewPickerModal",
+      "overviewPickerBackdrop",
+      "overviewPickerTitle",
+      "overviewPickerClose",
+      "overviewPickerRow",
+      "overviewPickerYear",
+      "overviewPickerMonth",
+      "overviewPickerDay",
+      "overviewPickerCancel",
+      "overviewPickerConfirm",
       "yearMonthBars",
       "yearMonthHint",
       "entryCount",
@@ -120,6 +145,14 @@
       "monthExpenseCategories",
       "monthEntries",
       "monthEntryCount",
+      "savingsForm",
+      "savingsDate",
+      "savingsAmount",
+      "savingsNote",
+      "latestSavingsAmount",
+      "latestSavingsMeta",
+      "savingsCount",
+      "savingsHistory",
       "incomeCategoryChips",
       "expenseCategoryChips",
       "newIncomeCategory",
@@ -150,6 +183,29 @@
       });
     });
 
+    forEachNode(document.querySelectorAll("[data-stat-period]"), function (button) {
+      button.addEventListener("click", function () {
+        state.overviewStatPeriod = button.getAttribute("data-stat-period") || "day";
+        renderOverviewStats();
+      });
+    });
+
+    forEachNode(document.querySelectorAll("[data-overview-picker-target]"), function (button) {
+      button.addEventListener("click", function () {
+        openOverviewPicker(button);
+      });
+    });
+
+    els.overviewPickerBackdrop.addEventListener("click", closeOverviewPicker);
+    els.overviewPickerClose.addEventListener("click", closeOverviewPicker);
+    els.overviewPickerCancel.addEventListener("click", closeOverviewPicker);
+    els.overviewPickerConfirm.addEventListener("click", confirmOverviewPicker);
+    els.overviewPickerYear.addEventListener("change", syncOverviewPickerDays);
+    els.overviewPickerMonth.addEventListener("change", syncOverviewPickerDays);
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && activeOverviewPicker) closeOverviewPicker();
+    });
+
     els.quickAddBtn.addEventListener("click", function () {
       setView("add");
       window.setTimeout(function () {
@@ -161,6 +217,15 @@
     els.entryForm.addEventListener("submit", saveEntry);
     els.dailyTotalForm.addEventListener("submit", saveDailyTotal);
     els.monthlyTotalForm.addEventListener("submit", saveMonthlyTotal);
+    els.savingsForm.addEventListener("submit", saveSavings);
+
+    bindOverviewPicker(els.overviewStatDay, "date", renderOverviewStats);
+    bindOverviewPicker(els.overviewStatMonth, "month", renderOverviewStats);
+    bindOverviewPicker(els.overviewStatYear, "year", renderOverviewStats);
+    bindOverviewPicker(els.overviewPieDay, "date", renderOverviewCharts);
+    bindOverviewPicker(els.overviewPieMonth, "month", renderOverviewCharts);
+    bindOverviewPicker(els.overviewPieYear, "year", renderOverviewCharts);
+    bindOverviewPicker(els.savingsDate, "date", function () {});
 
     els.dailyTotalDate.addEventListener("change", function () {
       els.dailyTotalDate.value = normalizeDateValue(els.dailyTotalDate.value) || state.selectedDay;
@@ -249,6 +314,12 @@
         return;
       }
 
+      var savingsDeleteButton = closestMatch(event.target, "[data-delete-savings-id]");
+      if (savingsDeleteButton) {
+        deleteSavings(savingsDeleteButton.getAttribute("data-delete-savings-id"));
+        return;
+      }
+
       var dayButton = closestMatch(event.target, "[data-open-day]");
       if (dayButton) {
         state.selectedDay = dayButton.getAttribute("data-open-day");
@@ -278,6 +349,10 @@
 
     forEachNode(document.querySelectorAll("[data-month-target]"), function (picker) {
       createMonthPicker(picker);
+    });
+
+    forEachNode(document.querySelectorAll("[data-year-target]"), function (picker) {
+      createYearPicker(picker);
     });
 
     syncAllPickerControls();
@@ -356,6 +431,126 @@
     monthSelect.addEventListener("change", onChange);
   }
 
+  function createYearPicker(picker) {
+    var targetId = picker.getAttribute("data-year-target");
+    var target = document.getElementById(targetId);
+    var yearSelect = picker.querySelector('[data-picker="year"]');
+    var value = normalizeYearValue(target.value) || String(new Date().getFullYear());
+
+    fillYearOptions(yearSelect, Number(value));
+    yearSelect.value = value;
+
+    pickerControls.push({
+      kind: "year",
+      targetId: targetId,
+      target: target,
+      picker: picker,
+      yearSelect: yearSelect
+    });
+
+    yearSelect.addEventListener("change", function () {
+      target.value = yearSelect.value;
+      triggerChange(target);
+    });
+  }
+
+  function bindOverviewPicker(input, kind, callback) {
+    input.addEventListener("change", function () {
+      var fallback = kind === "date"
+        ? toDateInputValue(new Date())
+        : kind === "month"
+          ? toMonthInputValue(new Date())
+          : String(new Date().getFullYear());
+      var normalized = kind === "date"
+        ? normalizeDateValue(input.value)
+        : kind === "month"
+          ? normalizeMonthValue(input.value)
+          : normalizeYearValue(input.value);
+      input.value = normalized || fallback;
+      syncPickerByTarget(input.id);
+      callback();
+    });
+  }
+
+  function openOverviewPicker(button) {
+    var targetId = button.getAttribute("data-overview-picker-target");
+    var kind = button.getAttribute("data-overview-picker-kind") || "date";
+    var target = document.getElementById(targetId);
+    if (!target) return;
+
+    var today = toDateInputValue(new Date());
+    var value;
+    if (kind === "year") {
+      value = (normalizeYearValue(target.value) || today.slice(0, 4)) + "-01-01";
+    } else if (kind === "month") {
+      value = (normalizeMonthValue(target.value) || today.slice(0, 7)) + "-01";
+    } else {
+      value = normalizeDateValue(target.value) || today;
+    }
+
+    var parts = value.split("-");
+    fillYearOptions(els.overviewPickerYear, Number(parts[0]));
+    fillMonthOptions(els.overviewPickerMonth);
+    els.overviewPickerYear.value = parts[0];
+    els.overviewPickerMonth.value = parts[1];
+    fillDayOptions(els.overviewPickerDay, Number(parts[0]), Number(parts[1]), Number(parts[2]));
+    els.overviewPickerDay.value = parts[2];
+
+    activeOverviewPicker = {
+      target: target,
+      kind: kind,
+      trigger: button
+    };
+    els.overviewPickerTitle.textContent = button.getAttribute("data-overview-picker-title") || "选择日期";
+    els.overviewPickerRow.setAttribute("data-kind", kind);
+    els.overviewPickerModal.hidden = false;
+    button.setAttribute("aria-expanded", "true");
+    document.body.classList.add("modal-open");
+    window.setTimeout(function () {
+      els.overviewPickerYear.focus();
+    }, 0);
+  }
+
+  function closeOverviewPicker() {
+    if (activeOverviewPicker && activeOverviewPicker.trigger) {
+      activeOverviewPicker.trigger.setAttribute("aria-expanded", "false");
+      activeOverviewPicker.trigger.focus();
+    }
+    activeOverviewPicker = null;
+    els.overviewPickerModal.hidden = true;
+    document.body.classList.remove("modal-open");
+  }
+
+  function confirmOverviewPicker() {
+    if (!activeOverviewPicker) return;
+
+    var value = els.overviewPickerYear.value;
+    if (activeOverviewPicker.kind !== "year") value += "-" + els.overviewPickerMonth.value;
+    if (activeOverviewPicker.kind === "date") value += "-" + els.overviewPickerDay.value;
+
+    var target = activeOverviewPicker.target;
+    target.value = value;
+    closeOverviewPicker();
+    triggerChange(target);
+  }
+
+  function syncOverviewPickerDays() {
+    if (!activeOverviewPicker || activeOverviewPicker.kind !== "date") return;
+    fillDayOptions(
+      els.overviewPickerDay,
+      Number(els.overviewPickerYear.value),
+      Number(els.overviewPickerMonth.value),
+      Number(els.overviewPickerDay.value)
+    );
+  }
+
+  function configureOverviewStatTrigger(targetId, kind, title, label) {
+    els.overviewStatPickerButton.setAttribute("data-overview-picker-target", targetId);
+    els.overviewStatPickerButton.setAttribute("data-overview-picker-kind", kind);
+    els.overviewStatPickerButton.setAttribute("data-overview-picker-title", title);
+    els.overviewStatPickerButton.textContent = label;
+  }
+
   function syncAllPickerControls() {
     for (var i = 0; i < pickerControls.length; i += 1) {
       syncPickerControl(pickerControls[i]);
@@ -380,6 +575,14 @@
       fillDayOptions(control.daySelect, Number(dateParts[0]), Number(dateParts[1]), Number(dateParts[2]));
       control.daySelect.value = dateParts[2];
       control.target.value = dateValue;
+      return;
+    }
+
+    if (control.kind === "year") {
+      var yearValue = normalizeYearValue(control.target.value) || String(new Date().getFullYear());
+      ensureYearOption(control.yearSelect, Number(yearValue));
+      control.yearSelect.value = yearValue;
+      control.target.value = yearValue;
       return;
     }
 
@@ -450,6 +653,7 @@
 
     state.dailyTotals = normalizeTotals(parseJson(localStorage.getItem(DAILY_TOTAL_KEY), []), "daily");
     state.monthlyTotals = normalizeTotals(parseJson(localStorage.getItem(MONTHLY_TOTAL_KEY), []), "monthly");
+    state.savings = normalizeSavingsList(parseJson(localStorage.getItem(SAVINGS_KEY), []));
 
     var storedCategories = parseJson(localStorage.getItem(CATEGORY_KEY), null);
     state.categories = mergeCategories(storedCategories);
@@ -469,6 +673,10 @@
 
   function persistMonthlyTotals() {
     localStorage.setItem(MONTHLY_TOTAL_KEY, JSON.stringify(state.monthlyTotals));
+  }
+
+  function persistSavings() {
+    localStorage.setItem(SAVINGS_KEY, JSON.stringify(state.savings));
   }
 
   function setView(target) {
@@ -594,6 +802,33 @@
     renderAll();
   }
 
+  function saveSavings(event) {
+    event.preventDefault();
+
+    var date = normalizeDateValue(els.savingsDate.value);
+    var amount = Number(els.savingsAmount.value);
+    var note = els.savingsNote.value.replace(/^\s+|\s+$/g, "");
+
+    if (!date || !isFinite(amount) || amount < 0) {
+      alert("请选择有效日期，并填写不小于 0 的总存款金额。");
+      return;
+    }
+
+    state.savings.push({
+      id: createId(),
+      date: date,
+      amount: roundMoney(amount),
+      note: note,
+      createdAt: new Date().toISOString()
+    });
+    persistSavings();
+
+    els.savingsForm.reset();
+    els.savingsDate.value = date;
+    syncPickerByTarget("savingsDate");
+    renderSavings();
+  }
+
   function deleteEntry(id) {
     var entry = null;
     for (var i = 0; i < state.entries.length; i += 1) {
@@ -643,6 +878,26 @@
       persistDailyTotals();
     }
     renderAll();
+  }
+
+  function deleteSavings(id) {
+    var record = null;
+    for (var i = 0; i < state.savings.length; i += 1) {
+      if (state.savings[i].id === id) {
+        record = state.savings[i];
+        break;
+      }
+    }
+    if (!record) return;
+    if (!confirm("删除这条存款记录？\n" + formatDisplayDate(record.date) + " " + formatMoney(record.amount))) return;
+
+    var next = [];
+    for (var j = 0; j < state.savings.length; j += 1) {
+      if (state.savings[j].id !== id) next.push(state.savings[j]);
+    }
+    state.savings = next;
+    persistSavings();
+    renderSavings();
   }
 
   function addSampleData() {
@@ -727,30 +982,33 @@
   }
 
   function clearData() {
-    if (!state.entries.length && !state.dailyTotals.length && !state.monthlyTotals.length) {
+    if (!state.entries.length && !state.dailyTotals.length && !state.monthlyTotals.length && !state.savings.length) {
       alert("当前没有记录。");
       return;
     }
 
-    if (!confirm("确定清空全部记账记录？此操作不可恢复。")) return;
+    if (!confirm("确定清空全部记账和存款记录？此操作不可恢复。")) return;
     state.entries = [];
     state.dailyTotals = [];
     state.monthlyTotals = [];
+    state.savings = [];
     persistEntries();
     persistDailyTotals();
     persistMonthlyTotals();
+    persistSavings();
     renderAll();
   }
 
   function exportJson() {
     var payload = {
       app: "local-ledger",
-      version: 2,
+      version: 3,
       exportedAt: new Date().toISOString(),
       categories: state.categories,
       entries: getSortedEntries(state.entries),
       dailyTotals: getSortedDailyTotals(state.dailyTotals),
-      monthlyTotals: getSortedMonthlyTotals(state.monthlyTotals)
+      monthlyTotals: getSortedMonthlyTotals(state.monthlyTotals),
+      savings: getSortedSavings(state.savings)
     };
 
     downloadFile(
@@ -773,6 +1031,18 @@
         entry.category,
         entry.note,
         entry.createdAt
+      ]);
+    }
+    var savings = getSortedSavings(state.savings);
+    for (var s = 0; s < savings.length; s += 1) {
+      rows.push([
+        savings[s].date,
+        "总存款",
+        "存款快照",
+        formatNumber(savings[s].amount),
+        "总存款",
+        savings[s].note,
+        savings[s].createdAt
       ]);
     }
 
@@ -814,16 +1084,19 @@
       var importedCategories = mergeCategories(data.categories);
       var importedDailyTotals = normalizeTotals(data.dailyTotals || [], "daily");
       var importedMonthlyTotals = normalizeTotals(data.monthlyTotals || [], "monthly");
+      var importedSavings = normalizeSavingsList(data.savings || []);
       var shouldReplace = confirm("选择“确定”覆盖当前数据；选择“取消”则追加导入记录。");
 
       state.categories = importedCategories;
       state.entries = shouldReplace ? importedEntries : mergeEntries(state.entries, importedEntries);
       state.dailyTotals = shouldReplace ? importedDailyTotals : mergeTotals(state.dailyTotals, importedDailyTotals);
       state.monthlyTotals = shouldReplace ? importedMonthlyTotals : mergeTotals(state.monthlyTotals, importedMonthlyTotals);
+      state.savings = shouldReplace ? importedSavings : mergeTotals(state.savings, importedSavings);
       persistCategories();
       persistEntries();
       persistDailyTotals();
       persistMonthlyTotals();
+      persistSavings();
       event.target.value = "";
       renderAll();
     };
@@ -837,40 +1110,68 @@
     renderFormDay();
     renderDay();
     renderMonth();
+    renderSavings();
     renderSettings();
   }
 
   function renderOverview() {
-    var today = toDateInputValue(new Date());
-    var thisMonth = today.slice(0, 7);
-    var thisYear = today.slice(0, 4);
-    var todayEntries = getLedgerItemsForDate(today);
-    var monthEntries = getLedgerItemsForMonth(thisMonth);
-    var yearEntries = getLedgerItemsForYearThroughDate(thisYear, today);
-
-    var todaySummary = summarize(todayEntries);
-    var monthSummary = summarize(monthEntries);
-    var yearSummary = summarize(yearEntries);
-
-    els.todayText.textContent = formatDisplayDate(today) + "，今年统计截止今日";
-    els.todayIncome.textContent = formatMoney(todaySummary.income);
-    els.todayExpense.textContent = formatMoney(todaySummary.expense);
-    els.monthIncome.textContent = formatMoney(monthSummary.income);
-    els.monthExpense.textContent = formatMoney(monthSummary.expense);
-    els.yearIncome.textContent = formatMoney(yearSummary.income);
-    els.yearExpense.textContent = formatMoney(yearSummary.expense);
-    els.yearBalance.textContent = formatMoney(yearSummary.balance);
+    els.todayText.textContent = "今天 · " + formatDisplayDate(toDateInputValue(new Date()));
     els.entryCount.textContent = getLedgerRecordCount() + " 条";
-
-    els.comparePieHint.textContent = "当日 / 本月 / 当年";
-    els.todayPieHint.textContent = formatDisplayDate(today);
-    els.monthPieHint.textContent = formatMonth(thisMonth);
-    els.yearPieHint.textContent = thisYear + "年截止今日";
-    renderComparePie(els.todayComparePie, todayEntries);
-    renderComparePie(els.monthComparePie, monthEntries);
-    renderComparePie(els.yearComparePie, yearEntries);
+    renderOverviewStats();
+    renderOverviewCharts();
     renderEntries(els.recentEntries, getSortedLedgerItems(getAllLedgerItems()).slice(0, 8));
-    renderYearMonthBars(thisYear);
+  }
+
+  function renderOverviewStats() {
+    var period = state.overviewStatPeriod;
+    var entries;
+    var hint;
+    var balanceLabel;
+
+    forEachNode(document.querySelectorAll("[data-stat-period]"), function (button) {
+      toggleClass(button, "is-active", button.getAttribute("data-stat-period") === period);
+    });
+
+    if (period === "year") {
+      var year = normalizeYearValue(els.overviewStatYear.value) || String(new Date().getFullYear());
+      entries = getLedgerItemsForYearSelection(year);
+      hint = formatYearSelection(year);
+      balanceLabel = "年度结余";
+      configureOverviewStatTrigger("overviewStatYear", "year", "选择统计年份", hint);
+    } else if (period === "month") {
+      var month = normalizeMonthValue(els.overviewStatMonth.value) || toMonthInputValue(new Date());
+      entries = getLedgerItemsForMonth(month);
+      hint = formatMonth(month);
+      balanceLabel = "月度结余";
+      configureOverviewStatTrigger("overviewStatMonth", "month", "选择统计月份", hint);
+    } else {
+      var date = normalizeDateValue(els.overviewStatDay.value) || toDateInputValue(new Date());
+      entries = getLedgerItemsForDate(date);
+      hint = formatFullDisplayDate(date);
+      balanceLabel = "当日结余";
+      configureOverviewStatTrigger("overviewStatDay", "date", "选择统计日期", hint);
+    }
+
+    var summary = summarize(entries);
+    els.overviewBalanceLabel.textContent = balanceLabel;
+    els.yearIncome.textContent = formatMoney(summary.income);
+    els.yearExpense.textContent = formatMoney(summary.expense);
+    els.yearBalance.textContent = formatMoney(summary.balance);
+  }
+
+  function renderOverviewCharts() {
+    var day = normalizeDateValue(els.overviewPieDay.value) || toDateInputValue(new Date());
+    var month = normalizeMonthValue(els.overviewPieMonth.value) || toMonthInputValue(new Date());
+    var year = normalizeYearValue(els.overviewPieYear.value) || String(new Date().getFullYear());
+
+    els.comparePieHint.textContent = "日 / 月 / 年";
+    els.todayPieHint.textContent = formatFullDisplayDate(day);
+    els.monthPieHint.textContent = formatMonth(month);
+    els.yearPieHint.textContent = formatYearSelection(year);
+    renderComparePie(els.todayComparePie, getLedgerItemsForDate(day));
+    renderComparePie(els.monthComparePie, getLedgerItemsForMonth(month));
+    renderComparePie(els.yearComparePie, getLedgerItemsForYearSelection(year));
+    renderYearMonthBars(year);
   }
 
   function renderFormDay() {
@@ -911,6 +1212,39 @@
     renderCategoryBreakdown(els.monthIncomeCategories, entries, "income");
     renderCategoryBreakdown(els.monthExpenseCategories, entries, "expense");
     renderEntries(els.monthEntries, entries);
+  }
+
+  function renderSavings() {
+    var records = getSortedSavings(state.savings);
+    els.savingsCount.textContent = records.length + " 条";
+
+    if (!records.length) {
+      els.latestSavingsAmount.textContent = formatMoney(0);
+      els.latestSavingsMeta.textContent = "尚未记录";
+      renderEmpty(els.savingsHistory);
+      return;
+    }
+
+    var latest = records[0];
+    els.latestSavingsAmount.textContent = formatMoney(latest.amount);
+    els.latestSavingsMeta.textContent = formatFullDisplayDate(latest.date) + (latest.note ? " · " + latest.note : "");
+
+    var html = "";
+    for (var i = 0; i < records.length; i += 1) {
+      var record = records[i];
+      html +=
+        '<article class="entry-item savings-item">' +
+          '<div class="entry-main">' +
+            '<div class="entry-title"><b>' + formatFullDisplayDate(record.date) + "</b></div>" +
+            '<div class="entry-meta">' + (record.note ? escapeHtml(record.note) : "无备注") + "</div>" +
+          "</div>" +
+          '<div class="entry-actions">' +
+            '<div class="entry-amount savings-amount">' + formatMoney(record.amount) + "</div>" +
+            '<button class="delete-button" type="button" data-delete-savings-id="' + escapeHtml(record.id) + '" aria-label="删除存款记录">删</button>' +
+          "</div>" +
+        "</article>";
+    }
+    els.savingsHistory.innerHTML = html;
   }
 
   function renderSettings() {
@@ -1119,7 +1453,7 @@
 
   function buildComparePieSvg(incomeRows, incomeTotal, expenseRows, expenseTotal, incomeColors, expenseColors) {
     return (
-      '<svg class="pie-compare-chart" viewBox="0 0 320 170" role="img" aria-label="今日收入支出分类对比">' +
+      '<svg class="pie-compare-chart" viewBox="0 0 320 170" role="img" aria-label="收入支出分类对比">' +
         buildPieGroup(incomeRows, incomeTotal, incomeColors, "收入", 82, 78) +
         buildPieGroup(expenseRows, expenseTotal, expenseColors, "支出", 238, 78) +
         '<text class="pie-caption-text" x="82" y="158" text-anchor="middle">收入分类</text>' +
@@ -1272,10 +1606,14 @@
   }
 
   function renderYearMonthBars(year) {
+    var yearEntries = getLedgerItemsForYearSelection(year);
     var rows = [];
     for (var month = 1; month <= 12; month += 1) {
       var key = year + "-" + pad2(month);
-      var entries = getLedgerItemsForMonth(key);
+      var entries = [];
+      for (var entryIndex = 0; entryIndex < yearEntries.length; entryIndex += 1) {
+        if (yearEntries[entryIndex].month === key) entries.push(yearEntries[entryIndex]);
+      }
       var summary = summarize(entries);
       rows.push({
         month: month,
@@ -1398,6 +1736,27 @@
       }
     }
     return getSortedLedgerItems(items);
+  }
+
+  function getLedgerItemsForYear(year) {
+    var items = [];
+    for (var i = 0; i < state.entries.length; i += 1) {
+      if (state.entries[i].date.slice(0, 4) === year) items.push(entryToLedgerItem(state.entries[i]));
+    }
+    for (var j = 0; j < state.dailyTotals.length; j += 1) {
+      if (state.dailyTotals[j].date.slice(0, 4) === year) appendDailyTotalItems(items, [state.dailyTotals[j]]);
+    }
+    for (var k = 0; k < state.monthlyTotals.length; k += 1) {
+      if (state.monthlyTotals[k].month.slice(0, 4) === year) appendMonthlyTotalItems(items, [state.monthlyTotals[k]]);
+    }
+    return getSortedLedgerItems(items);
+  }
+
+  function getLedgerItemsForYearSelection(year) {
+    var today = toDateInputValue(new Date());
+    return year === today.slice(0, 4)
+      ? getLedgerItemsForYearThroughDate(year, today)
+      : getLedgerItemsForYear(year);
   }
 
   function entryToLedgerItem(entry) {
@@ -1542,6 +1901,30 @@
     };
   }
 
+  function normalizeSavingsList(values) {
+    var records = [];
+    if (!Array.isArray(values)) return records;
+    for (var i = 0; i < values.length; i += 1) {
+      var record = normalizeSavings(values[i]);
+      if (record) records.push(record);
+    }
+    return records;
+  }
+
+  function normalizeSavings(record) {
+    if (!record || typeof record !== "object") return null;
+    var date = normalizeDateValue(String(record.date || ""));
+    var amount = Number(record.amount);
+    if (!date || !isFinite(amount) || amount < 0) return null;
+    return {
+      id: String(record.id || createId()),
+      date: date,
+      amount: roundMoney(amount),
+      note: String(record.note || "").replace(/^\s+|\s+$/g, "").slice(0, 80),
+      createdAt: String(record.createdAt || new Date().toISOString())
+    };
+  }
+
   function mergeEntries(current, imported) {
     var byId = {};
     var result = [];
@@ -1637,6 +2020,14 @@
     });
   }
 
+  function getSortedSavings(records) {
+    return records.slice().sort(function (a, b) {
+      var dateCompare = b.date.localeCompare(a.date);
+      if (dateCompare !== 0) return dateCompare;
+      return String(b.createdAt).localeCompare(String(a.createdAt));
+    });
+  }
+
   function itemSortDate(item) {
     if (item.scope === "monthly") return item.month + "-99";
     return item.date;
@@ -1713,6 +2104,11 @@
     return parts[0] + "年" + Number(parts[1]) + "月";
   }
 
+  function formatYearSelection(year) {
+    var currentYear = String(new Date().getFullYear());
+    return year === currentYear ? year + "年截止今日" : year + "年";
+  }
+
   function formatDisplayDate(dateValue) {
     if (!isDateInputValue(dateValue)) return "--";
     var parts = dateValue.split("-");
@@ -1722,6 +2118,11 @@
     var date = new Date(year, month - 1, day);
     var weekday = weekdayFormatter ? " " + weekdayFormatter.format(date) : "";
     return month + "月" + day + "日" + weekday;
+  }
+
+  function formatFullDisplayDate(dateValue) {
+    if (!isDateInputValue(dateValue)) return "--";
+    return dateValue.slice(0, 4) + "年" + formatDisplayDate(dateValue);
   }
 
   function toDateInputValue(date) {
@@ -1746,6 +2147,11 @@
       }
     }
     return "";
+  }
+
+  function normalizeYearValue(value) {
+    value = String(value || "").replace(/^\s+|\s+$/g, "").replace(/年/g, "");
+    return /^\d{4}$/.test(value) ? value : "";
   }
 
   function normalizeDateValue(value) {

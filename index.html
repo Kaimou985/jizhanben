@@ -8,9 +8,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="本地账本">
     <title>本地账本</title>
-    <link rel="manifest" href="manifest.json?v=12">
+    <link rel="manifest" href="manifest.json?v=14">
     <link rel="apple-touch-icon" href="icon.svg">
-    <link rel="stylesheet" href="styles.css?v=12">
+    <link rel="stylesheet" href="styles.css?v=14">
   </head>
   <body>
     <div class="app-shell">
@@ -32,9 +32,24 @@
             <button class="ghost-button" id="seedSampleBtn" type="button">示例数据</button>
           </div>
 
+          <section class="panel overview-stat-panel">
+            <div class="panel-title">
+              <h3>统计数据</h3>
+              <button class="date-trigger" id="overviewStatPickerButton" type="button" aria-haspopup="dialog" aria-expanded="false" data-overview-picker-target="overviewStatDay" data-overview-picker-kind="date" data-overview-picker-title="选择统计日期">--</button>
+            </div>
+            <input id="overviewStatDay" type="hidden">
+            <input id="overviewStatMonth" type="hidden">
+            <input id="overviewStatYear" type="hidden">
+            <div class="segmented three-way" role="tablist" aria-label="统计范围">
+              <button class="segment is-active" data-stat-period="day" type="button">日</button>
+              <button class="segment" data-stat-period="month" type="button">月</button>
+              <button class="segment" data-stat-period="year" type="button">年</button>
+            </div>
+          </section>
+
           <div class="summary-panel year-panel">
             <div>
-              <span class="summary-label">今年截止今日结余</span>
+              <span class="summary-label" id="overviewBalanceLabel">当日结余</span>
               <strong id="yearBalance">¥0.00</strong>
             </div>
             <div class="pair-grid">
@@ -49,25 +64,6 @@
             </div>
           </div>
 
-          <div class="metric-grid">
-            <article class="metric-card">
-              <span>今日收入</span>
-              <strong id="todayIncome">¥0.00</strong>
-            </article>
-            <article class="metric-card">
-              <span>今日支出</span>
-              <strong id="todayExpense">¥0.00</strong>
-            </article>
-            <article class="metric-card">
-              <span>本月收入</span>
-              <strong id="monthIncome">¥0.00</strong>
-            </article>
-            <article class="metric-card">
-              <span>本月支出</span>
-              <strong id="monthExpense">¥0.00</strong>
-            </article>
-          </div>
-
           <section class="panel">
             <div class="panel-title">
               <h3>收支分类对比</h3>
@@ -76,23 +72,26 @@
             <div class="period-compare-list">
               <article class="period-compare-card">
                 <div class="period-compare-head">
-                  <h4>当日</h4>
-                  <span id="todayPieHint">--</span>
+                  <h4>日图</h4>
+                  <button class="date-trigger compact" id="todayPieHint" type="button" aria-haspopup="dialog" aria-expanded="false" data-overview-picker-target="overviewPieDay" data-overview-picker-kind="date" data-overview-picker-title="选择日图日期">--</button>
                 </div>
+                <input id="overviewPieDay" type="hidden">
                 <div id="todayComparePie" class="pie-compare-box"></div>
               </article>
               <article class="period-compare-card">
                 <div class="period-compare-head">
-                  <h4>本月</h4>
-                  <span id="monthPieHint">--</span>
+                  <h4>月图</h4>
+                  <button class="date-trigger compact" id="monthPieHint" type="button" aria-haspopup="dialog" aria-expanded="false" data-overview-picker-target="overviewPieMonth" data-overview-picker-kind="month" data-overview-picker-title="选择月图月份">--</button>
                 </div>
+                <input id="overviewPieMonth" type="hidden">
                 <div id="monthComparePie" class="pie-compare-box"></div>
               </article>
               <article class="period-compare-card">
                 <div class="period-compare-head">
-                  <h4>当年</h4>
-                  <span id="yearPieHint">--</span>
+                  <h4>年图</h4>
+                  <button class="date-trigger compact" id="yearPieHint" type="button" aria-haspopup="dialog" aria-expanded="false" data-overview-picker-target="overviewPieYear" data-overview-picker-kind="year" data-overview-picker-title="选择年图年份">--</button>
                 </div>
+                <input id="overviewPieYear" type="hidden">
                 <div id="yearComparePie" class="pie-compare-box"></div>
               </article>
             </div>
@@ -100,7 +99,7 @@
 
           <section class="panel">
             <div class="panel-title">
-              <h3>今年月度对比</h3>
+              <h3>所选年份月度对比</h3>
               <span id="yearMonthHint" class="muted">--</span>
             </div>
             <div class="month-bars" id="yearMonthBars"></div>
@@ -355,6 +354,56 @@
           </section>
         </section>
 
+        <section class="view" id="view-savings" data-view="savings" aria-labelledby="savingsTitle">
+          <div class="section-head">
+            <div>
+              <h2 id="savingsTitle">总存款</h2>
+              <p class="muted">独立记录存款快照，不计入收入和支出</p>
+            </div>
+          </div>
+
+          <div class="summary-panel savings-summary">
+            <div>
+              <span class="summary-label">最新总存款</span>
+              <strong id="latestSavingsAmount">¥0.00</strong>
+            </div>
+            <div class="savings-latest-meta" id="latestSavingsMeta">尚未记录</div>
+          </div>
+
+          <form class="entry-form panel" id="savingsForm" autocomplete="off">
+            <div class="panel-title">
+              <h3>记录存款快照</h3>
+              <span class="muted">填写当日的存款总额</span>
+            </div>
+            <label class="field">
+              <span>日期</span>
+              <input id="savingsDate" type="hidden" required>
+              <div class="picker-row date-picker" data-date-target="savingsDate" aria-label="选择存款日期">
+                <select data-picker="year" aria-label="年"></select>
+                <select data-picker="month" aria-label="月"></select>
+                <select data-picker="day" aria-label="日"></select>
+              </div>
+            </label>
+            <label class="field">
+              <span>总存款</span>
+              <input id="savingsAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" required>
+            </label>
+            <label class="field">
+              <span>备注</span>
+              <input id="savingsNote" type="text" maxlength="80" placeholder="例如：银行卡、现金和理财合计">
+            </label>
+            <button class="primary-button" type="submit">保存存款记录</button>
+          </form>
+
+          <section class="panel">
+            <div class="panel-title">
+              <h3>存款历史</h3>
+              <span class="muted" id="savingsCount">0 条</span>
+            </div>
+            <div class="entry-list" id="savingsHistory"></div>
+          </section>
+        </section>
+
         <section class="view" id="view-settings" data-view="settings" aria-labelledby="settingsTitle">
           <div class="section-head">
             <div>
@@ -426,6 +475,9 @@
         <button class="nav-item" type="button" data-target="month">
           <span>月账</span>
         </button>
+        <button class="nav-item" type="button" data-target="savings">
+          <span>存款</span>
+        </button>
         <button class="nav-item" type="button" data-target="settings">
           <span>设置</span>
         </button>
@@ -436,6 +488,25 @@
       <div class="empty-state">暂无记录</div>
     </template>
 
-    <script src="app.js?v=12"></script>
+    <div class="picker-modal" id="overviewPickerModal" hidden>
+      <button class="picker-modal-backdrop" id="overviewPickerBackdrop" type="button" aria-label="关闭日期选择"></button>
+      <section class="picker-modal-sheet" role="dialog" aria-modal="true" aria-labelledby="overviewPickerTitle">
+        <div class="picker-modal-head">
+          <h3 id="overviewPickerTitle">选择日期</h3>
+          <button class="picker-modal-close" id="overviewPickerClose" type="button" aria-label="关闭">×</button>
+        </div>
+        <div class="picker-modal-row date-picker" id="overviewPickerRow">
+          <select id="overviewPickerYear" aria-label="年"></select>
+          <select id="overviewPickerMonth" aria-label="月"></select>
+          <select id="overviewPickerDay" aria-label="日"></select>
+        </div>
+        <div class="picker-modal-actions">
+          <button class="secondary-button" id="overviewPickerCancel" type="button">取消</button>
+          <button class="primary-button" id="overviewPickerConfirm" type="button">确定</button>
+        </div>
+      </section>
+    </div>
+
+    <script src="app.js?v=14"></script>
   </body>
 </html>
