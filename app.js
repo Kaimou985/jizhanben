@@ -1102,12 +1102,11 @@
     var svg = buildPieSvg(rows, total, colors, kind);
     var legend = "";
     for (var j = 0; j < rows.length; j += 1) {
-      var percent = total > 0 ? Math.round((rows[j].amount / total) * 100) : 0;
       legend +=
         '<div class="pie-legend-row">' +
           '<i class="pie-dot" style="--dot: ' + colors[j % colors.length] + '"></i>' +
           "<b>" + escapeHtml(rows[j].category) + "</b>" +
-          "<span>" + formatMoney(rows[j].amount) + " · " + percent + "%</span>" +
+          "<span>" + formatMoney(rows[j].amount) + "</span>" +
         "</div>";
     }
 
@@ -1165,12 +1164,11 @@
     }
 
     for (var i = 0; i < rows.length; i += 1) {
-      var percent = total > 0 ? Math.round((rows[i].amount / total) * 100) : 0;
       html +=
         '<div class="pie-legend-row">' +
           '<i class="pie-dot" style="--dot: ' + colors[i % colors.length] + '"></i>' +
           "<b>" + escapeHtml(rows[i].category) + "</b>" +
-          "<span>" + formatMoney(rows[i].amount) + " · " + percent + "%</span>" +
+          "<span>" + formatMoney(rows[i].amount) + "</span>" +
         "</div>";
     }
     html += "</div>";
