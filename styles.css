@@ -1,17 +1,20 @@
 :root {
   color-scheme: light;
-  --bg: #f5f7f4;
+  --bg: #f8f5f6;
   --surface: #ffffff;
-  --surface-strong: #eef4ef;
-  --text: #18211f;
-  --muted: #63716d;
-  --line: #dce5df;
-  --brand: #176b5b;
-  --brand-strong: #0e5146;
-  --income: #c23b32;
-  --expense: #17734f;
-  --warning: #a16413;
-  --shadow: 0 12px 28px rgba(23, 39, 34, 0.08);
+  --surface-strong: #f2ebee;
+  --text: #2a2025;
+  --muted: #766a70;
+  --line: #e5d9de;
+  --brand: #7b2d4f;
+  --brand-strong: #5f1f3b;
+  --income: #cf3e48;
+  --expense: #267a63;
+  --danger: #cf3e48;
+  --danger-soft: #fff1f2;
+  --danger-line: #efc4ca;
+  --warning: #9a6121;
+  --shadow: 0 12px 28px rgba(42, 32, 37, 0.09);
   --radius: 8px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
 }
@@ -65,8 +68,8 @@ button:disabled {
   justify-content: space-between;
   gap: 16px;
   padding: calc(14px + env(safe-area-inset-top)) 18px 12px;
-  background: rgba(245, 247, 244, 0.94);
-  border-bottom: 1px solid rgba(220, 229, 223, 0.82);
+  background: rgba(248, 245, 246, 0.94);
+  border-bottom: 1px solid rgba(229, 217, 222, 0.84);
   backdrop-filter: blur(14px);
 }
 
@@ -164,7 +167,7 @@ button:disabled {
 .year-panel {
   color: #fff;
   border-color: transparent;
-  background: #176b5b;
+  background: var(--brand);
 }
 
 .summary-panel strong {
@@ -341,10 +344,10 @@ button:disabled {
 .delete-button {
   width: 34px;
   height: 30px;
-  border: 1px solid #f0c7c1;
+  border: 1px solid var(--danger-line);
   border-radius: 6px;
-  color: var(--expense);
-  background: #fff6f4;
+  color: var(--danger);
+  background: var(--danger-soft);
   font-size: 13px;
 }
 
@@ -530,9 +533,9 @@ button:disabled {
 
 .danger-button {
   width: 100%;
-  border: 1px solid #e6aaa2;
+  border: 1px solid var(--danger-line);
   color: #fff;
-  background: var(--expense);
+  background: var(--danger);
 }
 
 .button-row {
@@ -729,7 +732,7 @@ button:disabled {
 }
 
 .danger-panel {
-  border-color: #f0c7c1;
+  border-color: var(--danger-line);
 }
 
 .bottom-nav {

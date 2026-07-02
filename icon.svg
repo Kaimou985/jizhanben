@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="本地账本图标">
-  <rect width="512" height="512" rx="96" fill="#176b5b"/>
+  <rect width="512" height="512" rx="96" fill="#7b2d4f"/>
   <rect x="116" y="86" width="280" height="340" rx="36" fill="#ffffff"/>
-  <rect x="148" y="132" width="216" height="34" rx="17" fill="#dfeae3"/>
-  <rect x="148" y="202" width="216" height="28" rx="14" fill="#176b5b"/>
-  <rect x="148" y="260" width="96" height="28" rx="14" fill="#197245"/>
-  <rect x="268" y="260" width="96" height="28" rx="14" fill="#b94235"/>
-  <rect x="148" y="318" width="216" height="28" rx="14" fill="#dfeae3"/>
-  <circle cx="368" cy="376" r="62" fill="#f4c95d"/>
-  <path d="M368 337v78M329 376h78" stroke="#176b5b" stroke-width="28" stroke-linecap="round"/>
+  <rect x="148" y="132" width="216" height="34" rx="17" fill="#f2ebee"/>
+  <rect x="148" y="202" width="216" height="28" rx="14" fill="#7b2d4f"/>
+  <rect x="148" y="260" width="96" height="28" rx="14" fill="#cf3e48"/>
+  <rect x="268" y="260" width="96" height="28" rx="14" fill="#267a63"/>
+  <rect x="148" y="318" width="216" height="28" rx="14" fill="#f2ebee"/>
+  <circle cx="368" cy="376" r="62" fill="#e8bfd0"/>
+  <path d="M368 337v78M329 376h78" stroke="#7b2d4f" stroke-width="28" stroke-linecap="round"/>
 </svg>
