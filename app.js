@@ -74,7 +74,6 @@
   function cacheElements() {
     var ids = [
       "quickAddBtn",
-      "seedSampleBtn",
       "todayText",
       "overviewStatPickerButton",
       "overviewBalanceLabel",
@@ -213,7 +212,6 @@
       }, 0);
     });
 
-    els.seedSampleBtn.addEventListener("click", addSampleData);
     els.entryForm.addEventListener("submit", saveEntry);
     els.dailyTotalForm.addEventListener("submit", saveDailyTotal);
     els.monthlyTotalForm.addEventListener("submit", saveMonthlyTotal);
@@ -898,43 +896,6 @@
     state.savings = next;
     persistSavings();
     renderSavings();
-  }
-
-  function addSampleData() {
-    if (state.entries.length > 0 && !confirm("示例数据会追加到当前账本，继续添加？")) {
-      return;
-    }
-
-    var today = new Date();
-    var y = today.getFullYear();
-    var m = today.getMonth();
-    var samples = [
-      { offset: 0, type: "expense", amount: 28, category: "餐饮", note: "午餐" },
-      { offset: 0, type: "expense", amount: 12, category: "交通", note: "地铁" },
-      { offset: 1, type: "income", amount: 8200, category: "工资", note: "本月工资" },
-      { offset: 2, type: "expense", amount: 230, category: "购物", note: "日用品" },
-      { offset: 4, type: "expense", amount: 1680, category: "居住", note: "房租" },
-      { offset: 6, type: "income", amount: 600, category: "副业", note: "项目收入" },
-      { offset: 8, type: "expense", amount: 86, category: "娱乐", note: "电影" },
-      { offset: 12, type: "expense", amount: 120, category: "医疗", note: "药品" }
-    ];
-
-    for (var i = 0; i < samples.length; i += 1) {
-      var sample = samples[i];
-      var date = new Date(y, m, Math.max(1, today.getDate() - sample.offset));
-      state.entries.push({
-        id: createId(),
-        type: sample.type,
-        amount: sample.amount,
-        date: toDateInputValue(date),
-        category: sample.category,
-        note: sample.note,
-        createdAt: new Date().toISOString()
-      });
-    }
-
-    persistEntries();
-    renderAll();
   }
 
   function addCategory(kind) {
