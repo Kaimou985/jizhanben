@@ -375,6 +375,24 @@ button:disabled {
   gap: 13px;
 }
 
+.total-ledger-grid,
+.total-form {
+  display: grid;
+  gap: 13px;
+}
+
+.total-form {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-strong);
+}
+
+.total-form h4 {
+  color: var(--text);
+}
+
 .segmented {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -721,7 +739,8 @@ button:disabled {
 
   .form-grid,
   .category-blocks,
-  .category-manager {
+  .category-manager,
+  .total-ledger-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

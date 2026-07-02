@@ -1,6 +1,8 @@
 (function () {
   var STORE_KEY = "ledger.entries.v1";
   var CATEGORY_KEY = "ledger.categories.v1";
+  var DAILY_TOTAL_KEY = "ledger.dailyTotals.v1";
+  var MONTHLY_TOTAL_KEY = "ledger.monthlyTotals.v1";
 
   var defaultCategories = {
     income: ["工资", "奖金", "副业", "投资", "退款", "其他收入"],
@@ -9,6 +11,8 @@
 
   var state = {
     entries: [],
+    dailyTotals: [],
+    monthlyTotals: [],
     categories: cloneData(defaultCategories),
     entryType: "expense",
     selectedDay: toDateInputValue(new Date()),
@@ -48,6 +52,8 @@
     els.dateInput.value = state.selectedDay;
     els.dayPicker.value = state.selectedDay;
     els.monthPicker.value = state.selectedMonth;
+    els.dailyTotalDate.value = state.selectedDay;
+    els.monthlyTotalMonth.value = state.selectedMonth;
     renderAll();
     registerServiceWorker();
   }
@@ -75,6 +81,16 @@
       "noteInput",
       "formDayHint",
       "formDayEntries",
+      "dailyTotalForm",
+      "dailyTotalDate",
+      "dailyTotalIncome",
+      "dailyTotalExpense",
+      "dailyTotalNote",
+      "monthlyTotalForm",
+      "monthlyTotalMonth",
+      "monthlyTotalIncome",
+      "monthlyTotalExpense",
+      "monthlyTotalNote",
       "dayPicker",
       "dayIncome",
       "dayExpense",
@@ -134,8 +150,11 @@
 
     els.seedSampleBtn.addEventListener("click", addSampleData);
     els.entryForm.addEventListener("submit", saveEntry);
+    els.dailyTotalForm.addEventListener("submit", saveDailyTotal);
+    els.monthlyTotalForm.addEventListener("submit", saveMonthlyTotal);
 
     els.dateInput.addEventListener("change", function () {
+      if (els.dateInput.value) els.dailyTotalDate.value = els.dateInput.value;
       renderFormDay();
     });
 
@@ -147,6 +166,7 @@
     els.monthPicker.addEventListener("change", function () {
       state.selectedMonth = normalizeMonthValue(els.monthPicker.value) || toMonthInputValue(new Date());
       els.monthPicker.value = state.selectedMonth;
+      els.monthlyTotalMonth.value = state.selectedMonth;
       renderMonth();
     });
 
@@ -165,6 +185,15 @@
       var deleteButton = closestMatch(event.target, "[data-delete-id]");
       if (deleteButton) {
         deleteEntry(deleteButton.getAttribute("data-delete-id"));
+        return;
+      }
+
+      var totalDeleteButton = closestMatch(event.target, "[data-delete-total-id]");
+      if (totalDeleteButton) {
+        deleteTotal(
+          totalDeleteButton.getAttribute("data-total-kind"),
+          totalDeleteButton.getAttribute("data-delete-total-id")
+        );
         return;
       }
 
@@ -198,6 +227,9 @@
     }
     state.entries = normalized;
 
+    state.dailyTotals = normalizeTotals(parseJson(localStorage.getItem(DAILY_TOTAL_KEY), []), "daily");
+    state.monthlyTotals = normalizeTotals(parseJson(localStorage.getItem(MONTHLY_TOTAL_KEY), []), "monthly");
+
     var storedCategories = parseJson(localStorage.getItem(CATEGORY_KEY), null);
     state.categories = mergeCategories(storedCategories);
   }
@@ -208,6 +240,14 @@
 
   function persistCategories() {
     localStorage.setItem(CATEGORY_KEY, JSON.stringify(state.categories));
+  }
+
+  function persistDailyTotals() {
+    localStorage.setItem(DAILY_TOTAL_KEY, JSON.stringify(state.dailyTotals));
+  }
+
+  function persistMonthlyTotals() {
+    localStorage.setItem(MONTHLY_TOTAL_KEY, JSON.stringify(state.monthlyTotals));
   }
 
   function setView(target) {
@@ -262,7 +302,72 @@
     els.monthPicker.value = state.selectedMonth;
     els.entryForm.reset();
     els.dateInput.value = date;
+    els.dailyTotalDate.value = date;
+    els.monthlyTotalMonth.value = state.selectedMonth;
     setEntryType(state.entryType);
+    renderAll();
+  }
+
+  function saveDailyTotal(event) {
+    event.preventDefault();
+
+    var date = els.dailyTotalDate.value;
+    var income = readMoneyInput(els.dailyTotalIncome);
+    var expense = readMoneyInput(els.dailyTotalExpense);
+    var note = els.dailyTotalNote.value.replace(/^\s+|\s+$/g, "");
+
+    if (!isDateInputValue(date) || (income <= 0 && expense <= 0)) {
+      alert("请选择日期，并至少填写总收入或总支出中的一项。");
+      return;
+    }
+
+    state.dailyTotals.push({
+      id: createId(),
+      date: date,
+      income: income,
+      expense: expense,
+      note: note,
+      createdAt: new Date().toISOString()
+    });
+
+    persistDailyTotals();
+    state.selectedDay = date;
+    state.selectedMonth = date.slice(0, 7);
+    els.dayPicker.value = state.selectedDay;
+    els.monthPicker.value = state.selectedMonth;
+    els.monthlyTotalMonth.value = state.selectedMonth;
+    els.dailyTotalForm.reset();
+    els.dailyTotalDate.value = date;
+    renderAll();
+  }
+
+  function saveMonthlyTotal(event) {
+    event.preventDefault();
+
+    var month = normalizeMonthValue(els.monthlyTotalMonth.value);
+    var income = readMoneyInput(els.monthlyTotalIncome);
+    var expense = readMoneyInput(els.monthlyTotalExpense);
+    var note = els.monthlyTotalNote.value.replace(/^\s+|\s+$/g, "");
+
+    if (!month || (income <= 0 && expense <= 0)) {
+      alert("请选择月份，并至少填写总收入或总支出中的一项。");
+      return;
+    }
+
+    state.monthlyTotals.push({
+      id: createId(),
+      month: month,
+      income: income,
+      expense: expense,
+      note: note,
+      createdAt: new Date().toISOString()
+    });
+
+    persistMonthlyTotals();
+    state.selectedMonth = month;
+    els.monthPicker.value = state.selectedMonth;
+    els.monthlyTotalForm.reset();
+    els.monthlyTotalMonth.value = month;
     renderAll();
   }
 
@@ -285,6 +390,35 @@
     }
     state.entries = nextEntries;
     persistEntries();
+    renderAll();
+  }
+
+  function deleteTotal(kind, id) {
+    var list = kind === "monthly" ? state.monthlyTotals : state.dailyTotals;
+    var total = null;
+    for (var i = 0; i < list.length; i += 1) {
+      if (list[i].id === id) {
+        total = list[i];
+        break;
+      }
+    }
+    if (!total) return;
+
+    var title = kind === "monthly" ? formatMonth(total.month) + " 每月总账" : formatDisplayDate(total.date) + " 每天总账";
+    if (!confirm("删除这条总账？\n" + title)) return;
+
+    var next = [];
+    for (var j = 0; j < list.length; j += 1) {
+      if (list[j].id !== id) next.push(list[j]);
+    }
+
+    if (kind === "monthly") {
+      state.monthlyTotals = next;
+      persistMonthlyTotals();
+    } else {
+      state.dailyTotals = next;
+      persistDailyTotals();
+    }
     renderAll();
   }
 
@@ -370,24 +504,30 @@
   }
 
   function clearData() {
-    if (!state.entries.length) {
+    if (!state.entries.length && !state.dailyTotals.length && !state.monthlyTotals.length) {
       alert("当前没有记录。");
       return;
     }
 
     if (!confirm("确定清空全部记账记录？此操作不可恢复。")) return;
     state.entries = [];
+    state.dailyTotals = [];
+    state.monthlyTotals = [];
     persistEntries();
+    persistDailyTotals();
+    persistMonthlyTotals();
     renderAll();
   }
 
   function exportJson() {
     var payload = {
       app: "local-ledger",
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
       categories: state.categories,
-      entries: getSortedEntries(state.entries)
+      entries: getSortedEntries(state.entries),
+      dailyTotals: getSortedDailyTotals(state.dailyTotals),
+      monthlyTotals: getSortedMonthlyTotals(state.monthlyTotals)
     };
 
     downloadFile(
@@ -398,12 +538,13 @@
   }
 
   function exportCsv() {
-    var rows = [["日期", "类型", "金额", "分类", "备注", "创建时间"]];
-    var sorted = getSortedEntries(state.entries);
+    var rows = [["日期/月份", "来源", "类型", "金额", "分类", "备注", "创建时间"]];
+    var sorted = getSortedLedgerItems(getAllLedgerItems());
     for (var i = 0; i < sorted.length; i += 1) {
       var entry = sorted[i];
       rows.push([
-        entry.date,
+        entry.scope === "monthly" ? entry.month : entry.date,
+        sourceLabel(entry.scope),
         typeLabel(entry.type),
         formatNumber(entry.amount),
         entry.category,
@@ -448,12 +589,18 @@
       }
 
       var importedCategories = mergeCategories(data.categories);
+      var importedDailyTotals = normalizeTotals(data.dailyTotals || [], "daily");
+      var importedMonthlyTotals = normalizeTotals(data.monthlyTotals || [], "monthly");
       var shouldReplace = confirm("选择“确定”覆盖当前数据；选择“取消”则追加导入记录。");
 
       state.categories = importedCategories;
       state.entries = shouldReplace ? importedEntries : mergeEntries(state.entries, importedEntries);
+      state.dailyTotals = shouldReplace ? importedDailyTotals : mergeTotals(state.dailyTotals, importedDailyTotals);
+      state.monthlyTotals = shouldReplace ? importedMonthlyTotals : mergeTotals(state.monthlyTotals, importedMonthlyTotals);
       persistCategories();
       persistEntries();
+      persistDailyTotals();
+      persistMonthlyTotals();
       event.target.value = "";
       renderAll();
     };
@@ -473,16 +620,9 @@
     var today = toDateInputValue(new Date());
     var thisMonth = today.slice(0, 7);
     var thisYear = today.slice(0, 4);
-    var todayEntries = [];
-    var monthEntries = [];
-    var yearEntries = [];
-
-    for (var i = 0; i < state.entries.length; i += 1) {
-      var entry = state.entries[i];
-      if (entry.date === today) todayEntries.push(entry);
-      if (entry.date.slice(0, 7) === thisMonth) monthEntries.push(entry);
-      if (entry.date.slice(0, 4) === thisYear && entry.date <= today) yearEntries.push(entry);
-    }
+    var todayEntries = getLedgerItemsForDate(today);
+    var monthEntries = getLedgerItemsForMonth(thisMonth);
+    var yearEntries = getLedgerItemsForYearThroughDate(thisYear, today);
 
     var todaySummary = summarize(todayEntries);
     var monthSummary = summarize(monthEntries);
@@ -496,29 +636,29 @@
     els.yearIncome.textContent = formatMoney(yearSummary.income);
     els.yearExpense.textContent = formatMoney(yearSummary.expense);
     els.yearBalance.textContent = formatMoney(yearSummary.balance);
-    els.entryCount.textContent = state.entries.length + " 笔";
+    els.entryCount.textContent = getLedgerRecordCount() + " 条";
 
-    renderEntries(els.recentEntries, getSortedEntries(state.entries).slice(0, 8));
+    renderEntries(els.recentEntries, getSortedLedgerItems(getAllLedgerItems()).slice(0, 8));
     renderYearMonthBars(thisYear);
   }
 
   function renderFormDay() {
     var date = els.dateInput.value || state.selectedDay;
-    var entries = getEntriesForDate(date);
-    els.formDayHint.textContent = formatDisplayDate(date) + " · " + entries.length + " 笔";
+    var entries = getLedgerItemsForDate(date);
+    els.formDayHint.textContent = formatDisplayDate(date) + " · " + entries.length + " 项";
     renderEntries(els.formDayEntries, entries);
   }
 
   function renderDay() {
     var date = state.selectedDay;
-    var entries = getEntriesForDate(date);
+    var entries = getLedgerItemsForDate(date);
     var summary = summarize(entries);
 
     els.dayIncome.textContent = formatMoney(summary.income);
     els.dayExpense.textContent = formatMoney(summary.expense);
     els.dayBalance.textContent = formatMoney(summary.balance);
-    els.dayCategoryHint.textContent = formatDisplayDate(date) + " · " + entries.length + " 笔";
-    els.dayEntryCount.textContent = entries.length + " 笔";
+    els.dayCategoryHint.textContent = formatDisplayDate(date) + " · " + entries.length + " 项";
+    els.dayEntryCount.textContent = entries.length + " 项";
 
     renderCategoryBreakdown(els.dayIncomeCategories, entries, "income");
     renderCategoryBreakdown(els.dayExpenseCategories, entries, "expense");
@@ -527,14 +667,14 @@
 
   function renderMonth() {
     var month = state.selectedMonth;
-    var entries = getEntriesForMonth(month);
+    var entries = getLedgerItemsForMonth(month);
     var summary = summarize(entries);
 
     els.selectedMonthIncome.textContent = formatMoney(summary.income);
     els.selectedMonthExpense.textContent = formatMoney(summary.expense);
     els.selectedMonthBalance.textContent = formatMoney(summary.balance);
-    els.monthEntryCount.textContent = entries.length + " 笔";
-    els.monthCategoryHint.textContent = formatMonth(month) + " · " + entries.length + " 笔";
+    els.monthEntryCount.textContent = entries.length + " 项";
+    els.monthCategoryHint.textContent = formatMonth(month) + " · " + entries.length + " 项";
 
     renderDailySummary(month, entries);
     renderCategoryBreakdown(els.monthIncomeCategories, entries, "income");
@@ -568,6 +708,10 @@
       var type = entry.type === "income" ? "income" : "expense";
       var signedAmount = type === "income" ? formatMoney(entry.amount) : "-" + formatMoney(entry.amount);
       var note = entry.note ? " · " + escapeHtml(entry.note) : "";
+      var source = sourceLabel(entry.scope);
+      var deleteAttr = entry.scope === "entry"
+        ? 'data-delete-id="' + escapeHtml(entry.id) + '"'
+        : 'data-total-kind="' + entry.scope + '" data-delete-total-id="' + escapeHtml(entry.id) + '"';
       html +=
         '<article class="entry-item">' +
           '<div class="entry-main">' +
@@ -575,11 +719,11 @@
               '<span class="badge ' + type + '">' + typeLabel(type) + "</span>" +
               "<b>" + escapeHtml(entry.category) + "</b>" +
             "</div>" +
-            '<div class="entry-meta">' + formatDisplayDate(entry.date) + note + "</div>" +
+            '<div class="entry-meta">' + source + " · " + itemDisplayDate(entry) + note + "</div>" +
           "</div>" +
           '<div class="entry-actions">' +
             '<div class="entry-amount ' + type + '">' + signedAmount + "</div>" +
-            '<button class="delete-button" type="button" data-delete-id="' + escapeHtml(entry.id) + '" aria-label="删除记录">删</button>' +
+            '<button class="delete-button" type="button" ' + deleteAttr + ' aria-label="删除记录">删</button>' +
           "</div>" +
         "</article>";
     }
@@ -590,6 +734,7 @@
     var grouped = {};
     for (var i = 0; i < entries.length; i += 1) {
       var entry = entries[i];
+      if (entry.scope === "monthly") continue;
       if (!grouped[entry.date]) grouped[entry.date] = [];
       grouped[entry.date].push(entry);
     }
@@ -631,7 +776,7 @@
               "<span>结余 " + formatMoney(row.balance) + "</span>" +
             "</div>" +
           "</div>" +
-          '<button type="button" data-open-day="' + row.date + '">' + row.count + " 笔</button>" +
+          '<button type="button" data-open-day="' + row.date + '">' + row.count + " 项</button>" +
         "</article>";
     }
     els.dailySummaryList.innerHTML = html;
@@ -702,7 +847,7 @@
     var rows = [];
     for (var month = 1; month <= 12; month += 1) {
       var key = year + "-" + pad2(month);
-      var entries = getEntriesForMonth(key);
+      var entries = getLedgerItemsForMonth(key);
       var summary = summarize(entries);
       rows.push({
         month: month,
@@ -771,6 +916,140 @@
     return getSortedEntries(entries);
   }
 
+  function getAllLedgerItems() {
+    var items = [];
+    for (var i = 0; i < state.entries.length; i += 1) {
+      items.push(entryToLedgerItem(state.entries[i]));
+    }
+    appendDailyTotalItems(items, state.dailyTotals);
+    appendMonthlyTotalItems(items, state.monthlyTotals);
+    return items;
+  }
+
+  function getLedgerItemsForDate(date) {
+    var items = [];
+    for (var i = 0; i < state.entries.length; i += 1) {
+      if (state.entries[i].date === date) items.push(entryToLedgerItem(state.entries[i]));
+    }
+    for (var j = 0; j < state.dailyTotals.length; j += 1) {
+      if (state.dailyTotals[j].date === date) appendDailyTotalItems(items, [state.dailyTotals[j]]);
+    }
+    return getSortedLedgerItems(items);
+  }
+
+  function getLedgerItemsForMonth(month) {
+    var items = [];
+    for (var i = 0; i < state.entries.length; i += 1) {
+      if (state.entries[i].date.slice(0, 7) === month) items.push(entryToLedgerItem(state.entries[i]));
+    }
+    for (var j = 0; j < state.dailyTotals.length; j += 1) {
+      if (state.dailyTotals[j].date.slice(0, 7) === month) appendDailyTotalItems(items, [state.dailyTotals[j]]);
+    }
+    for (var k = 0; k < state.monthlyTotals.length; k += 1) {
+      if (state.monthlyTotals[k].month === month) appendMonthlyTotalItems(items, [state.monthlyTotals[k]]);
+    }
+    return getSortedLedgerItems(items);
+  }
+
+  function getLedgerItemsForYearThroughDate(year, today) {
+    var todayMonth = today.slice(0, 7);
+    var items = [];
+    for (var i = 0; i < state.entries.length; i += 1) {
+      if (state.entries[i].date.slice(0, 4) === year && state.entries[i].date <= today) {
+        items.push(entryToLedgerItem(state.entries[i]));
+      }
+    }
+    for (var j = 0; j < state.dailyTotals.length; j += 1) {
+      if (state.dailyTotals[j].date.slice(0, 4) === year && state.dailyTotals[j].date <= today) {
+        appendDailyTotalItems(items, [state.dailyTotals[j]]);
+      }
+    }
+    for (var k = 0; k < state.monthlyTotals.length; k += 1) {
+      if (state.monthlyTotals[k].month.slice(0, 4) === year && state.monthlyTotals[k].month <= todayMonth) {
+        appendMonthlyTotalItems(items, [state.monthlyTotals[k]]);
+      }
+    }
+    return getSortedLedgerItems(items);
+  }
+
+  function entryToLedgerItem(entry) {
+    return {
+      id: entry.id,
+      scope: "entry",
+      type: entry.type,
+      amount: entry.amount,
+      date: entry.date,
+      month: entry.date.slice(0, 7),
+      category: entry.category,
+      note: entry.note,
+      createdAt: entry.createdAt
+    };
+  }
+
+  function appendDailyTotalItems(items, totals) {
+    for (var i = 0; i < totals.length; i += 1) {
+      var total = totals[i];
+      if (total.income > 0) {
+        items.push({
+          id: total.id,
+          scope: "daily",
+          type: "income",
+          amount: total.income,
+          date: total.date,
+          month: total.date.slice(0, 7),
+          category: "每天总账",
+          note: total.note,
+          createdAt: total.createdAt
+        });
+      }
+      if (total.expense > 0) {
+        items.push({
+          id: total.id,
+          scope: "daily",
+          type: "expense",
+          amount: total.expense,
+          date: total.date,
+          month: total.date.slice(0, 7),
+          category: "每天总账",
+          note: total.note,
+          createdAt: total.createdAt
+        });
+      }
+    }
+  }
+
+  function appendMonthlyTotalItems(items, totals) {
+    for (var i = 0; i < totals.length; i += 1) {
+      var total = totals[i];
+      if (total.income > 0) {
+        items.push({
+          id: total.id,
+          scope: "monthly",
+          type: "income",
+          amount: total.income,
+          date: total.month + "-01",
+          month: total.month,
+          category: "每月总账",
+          note: total.note,
+          createdAt: total.createdAt
+        });
+      }
+      if (total.expense > 0) {
+        items.push({
+          id: total.id,
+          scope: "monthly",
+          type: "expense",
+          amount: total.expense,
+          date: total.month + "-01",
+          month: total.month,
+          category: "每月总账",
+          note: total.note,
+          createdAt: total.createdAt
+        });
+      }
+    }
+  }
+
   function normalizeEntry(entry) {
     if (!entry || typeof entry !== "object") return null;
     var amount = Number(entry.amount);
@@ -793,6 +1072,48 @@
     };
   }
 
+  function normalizeTotals(values, kind) {
+    var totals = [];
+    if (!Array.isArray(values)) return totals;
+    for (var i = 0; i < values.length; i += 1) {
+      var total = normalizeTotal(values[i], kind);
+      if (total) totals.push(total);
+    }
+    return totals;
+  }
+
+  function normalizeTotal(total, kind) {
+    if (!total || typeof total !== "object") return null;
+
+    var income = roundMoney(Math.max(0, Number(total.income) || 0));
+    var expense = roundMoney(Math.max(0, Number(total.expense) || 0));
+    if (income <= 0 && expense <= 0) return null;
+
+    if (kind === "monthly") {
+      var month = normalizeMonthValue(String(total.month || ""));
+      if (!month) return null;
+      return {
+        id: String(total.id || createId()),
+        month: month,
+        income: income,
+        expense: expense,
+        note: String(total.note || "").replace(/^\s+|\s+$/g, "").slice(0, 80),
+        createdAt: String(total.createdAt || new Date().toISOString())
+      };
+    }
+
+    var date = String(total.date || "");
+    if (!isDateInputValue(date)) return null;
+    return {
+      id: String(total.id || createId()),
+      date: date,
+      income: income,
+      expense: expense,
+      note: String(total.note || "").replace(/^\s+|\s+$/g, "").slice(0, 80),
+      createdAt: String(total.createdAt || new Date().toISOString())
+    };
+  }
+
   function mergeEntries(current, imported) {
     var byId = {};
     var result = [];
@@ -809,6 +1130,28 @@
       } else {
         byId[entry.id] = result.length;
         result.push(entry);
+      }
+    }
+
+    return result;
+  }
+
+  function mergeTotals(current, imported) {
+    var byId = {};
+    var result = [];
+
+    for (var i = 0; i < current.length; i += 1) {
+      byId[current[i].id] = result.length;
+      result.push(current[i]);
+    }
+
+    for (var j = 0; j < imported.length; j += 1) {
+      var total = imported[j];
+      if (typeof byId[total.id] === "number") {
+        result[byId[total.id]] = total;
+      } else {
+        byId[total.id] = result.length;
+        result.push(total);
       }
     }
 
@@ -842,6 +1185,35 @@
     });
   }
 
+  function getSortedLedgerItems(items) {
+    return items.slice().sort(function (a, b) {
+      var dateCompare = itemSortDate(b).localeCompare(itemSortDate(a));
+      if (dateCompare !== 0) return dateCompare;
+      return String(b.createdAt).localeCompare(String(a.createdAt));
+    });
+  }
+
+  function getSortedDailyTotals(totals) {
+    return totals.slice().sort(function (a, b) {
+      var dateCompare = b.date.localeCompare(a.date);
+      if (dateCompare !== 0) return dateCompare;
+      return String(b.createdAt).localeCompare(String(a.createdAt));
+    });
+  }
+
+  function getSortedMonthlyTotals(totals) {
+    return totals.slice().sort(function (a, b) {
+      var monthCompare = b.month.localeCompare(a.month);
+      if (monthCompare !== 0) return monthCompare;
+      return String(b.createdAt).localeCompare(String(a.createdAt));
+    });
+  }
+
+  function itemSortDate(item) {
+    if (item.scope === "monthly") return item.month + "-99";
+    return item.date;
+  }
+
   function downloadFile(filename, content, type) {
     var blob = new Blob([content], { type: type });
     var url = URL.createObjectURL(blob);
@@ -871,6 +1243,21 @@
 
   function typeLabel(type) {
     return type === "income" ? "收入" : "支出";
+  }
+
+  function sourceLabel(scope) {
+    if (scope === "daily") return "每天总账";
+    if (scope === "monthly") return "每月总账";
+    return "单笔记录";
+  }
+
+  function itemDisplayDate(item) {
+    if (item.scope === "monthly") return formatMonth(item.month);
+    return formatDisplayDate(item.date);
+  }
+
+  function getLedgerRecordCount() {
+    return state.entries.length + state.dailyTotals.length + state.monthlyTotals.length;
   }
 
   function formatMoney(value) {
@@ -930,6 +1317,12 @@
 
   function roundMoney(value) {
     return Math.round((Number(value) + 0.0000001) * 100) / 100;
+  }
+
+  function readMoneyInput(input) {
+    var value = Number(input.value);
+    if (!isFinite(value) || value <= 0) return 0;
+    return roundMoney(value);
   }
 
   function parseJson(value, fallback) {
