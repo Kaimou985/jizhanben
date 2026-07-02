@@ -73,8 +73,7 @@
       "monthIncome",
       "monthExpense",
       "todayPieHint",
-      "todayIncomePie",
-      "todayExpensePie",
+      "todayComparePie",
       "yearMonthBars",
       "yearMonthHint",
       "entryCount",
@@ -859,8 +858,7 @@
     els.entryCount.textContent = getLedgerRecordCount() + " 条";
 
     els.todayPieHint.textContent = formatDisplayDate(today) + " · 按分类";
-    renderPieBreakdown(els.todayIncomePie, todayEntries, "income");
-    renderPieBreakdown(els.todayExpensePie, todayEntries, "expense");
+    renderComparePie(els.todayComparePie, todayEntries);
     renderEntries(els.recentEntries, getSortedLedgerItems(getAllLedgerItems()).slice(0, 8));
     renderYearMonthBars(thisYear);
   }
@@ -1052,6 +1050,29 @@
     container.innerHTML = html;
   }
 
+  function renderComparePie(container, entries) {
+    var incomeRows = getCategoryRows(entries, "income");
+    var expenseRows = getCategoryRows(entries, "expense");
+    if (!incomeRows.length && !expenseRows.length) {
+      renderEmpty(container);
+      return;
+    }
+
+    var incomeTotal = sumCategoryRows(incomeRows);
+    var expenseTotal = sumCategoryRows(expenseRows);
+    var incomeColors = ["#cf3e48", "#e06a73", "#a9323c", "#ef9aa1", "#7b2d4f", "#c78aa4"];
+    var expenseColors = ["#267a63", "#4f9a82", "#1b5f4d", "#86b9a8", "#7b2d4f", "#b6a0ae"];
+
+    container.innerHTML =
+      '<div class="pie-compare-content">' +
+        buildComparePieSvg(incomeRows, incomeTotal, expenseRows, expenseTotal, incomeColors, expenseColors) +
+        '<div class="pie-legend-groups">' +
+          buildPieLegend("收入", incomeRows, incomeTotal, incomeColors) +
+          buildPieLegend("支出", expenseRows, expenseTotal, expenseColors) +
+        "</div>" +
+      "</div>";
+  }
+
   function renderPieBreakdown(container, entries, kind) {
     var rows = getCategoryRows(entries, kind);
     if (!rows.length) {
@@ -1087,6 +1108,65 @@
       "</div>";
   }
 
+  function buildComparePieSvg(incomeRows, incomeTotal, expenseRows, expenseTotal, incomeColors, expenseColors) {
+    return (
+      '<svg class="pie-compare-chart" viewBox="0 0 260 132" role="img" aria-label="今日收入支出分类对比">' +
+        buildPieGroup(incomeRows, incomeTotal, incomeColors, "收入", 68, 62) +
+        buildPieGroup(expenseRows, expenseTotal, expenseColors, "支出", 192, 62) +
+        '<text x="68" y="124" text-anchor="middle">收入分类</text>' +
+        '<text x="192" y="124" text-anchor="middle">支出分类</text>' +
+      "</svg>"
+    );
+  }
+
+  function buildPieGroup(rows, total, colors, label, cx, cy) {
+    var radius = 46;
+    var paths = "";
+    var startAngle = -90;
+
+    if (!rows.length || total <= 0) {
+      paths =
+        '<circle cx="' + cx + '" cy="' + cy + '" r="' + radius + '" fill="var(--surface)" stroke="var(--line)" stroke-width="2"></circle>' +
+        '<circle cx="' + cx + '" cy="' + cy + '" r="24" fill="var(--surface-strong)"></circle>';
+    } else if (rows.length === 1) {
+      paths = '<circle cx="' + cx + '" cy="' + cy + '" r="' + radius + '" fill="' + colors[0] + '"></circle>';
+    } else {
+      for (var i = 0; i < rows.length; i += 1) {
+        var sweep = (rows[i].amount / total) * 360;
+        var endAngle = startAngle + sweep;
+        paths += describePieSlice(cx, cy, radius, startAngle, endAngle, colors[i % colors.length]);
+        startAngle = endAngle;
+      }
+    }
+
+    return (
+      paths +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="23" fill="var(--surface)"></circle>' +
+      '<text x="' + cx + '" y="' + (cy - 4) + '" text-anchor="middle">' + label + '</text>' +
+      '<text x="' + cx + '" y="' + (cy + 10) + '" text-anchor="middle">' + formatCompactMoney(total) + '</text>'
+    );
+  }
+
+  function buildPieLegend(title, rows, total, colors) {
+    var html = '<div class="pie-legend-group"><div class="pie-legend-title">' + title + "</div>";
+    if (!rows.length) {
+      html += '<div class="empty-state">暂无记录</div></div>';
+      return html;
+    }
+
+    for (var i = 0; i < rows.length; i += 1) {
+      var percent = total > 0 ? Math.round((rows[i].amount / total) * 100) : 0;
+      html +=
+        '<div class="pie-legend-row">' +
+          '<i class="pie-dot" style="--dot: ' + colors[i % colors.length] + '"></i>' +
+          "<b>" + escapeHtml(rows[i].category) + "</b>" +
+          "<span>" + formatMoney(rows[i].amount) + " · " + percent + "%</span>" +
+        "</div>";
+    }
+    html += "</div>";
+    return html;
+  }
+
   function getCategoryRows(entries, kind) {
     var totals = {};
     for (var i = 0; i < entries.length; i += 1) {
@@ -1106,6 +1186,14 @@
       return b.amount - a.amount;
     });
     return rows;
+  }
+
+  function sumCategoryRows(rows) {
+    var total = 0;
+    for (var i = 0; i < rows.length; i += 1) {
+      total = roundMoney(total + rows[i].amount);
+    }
+    return total;
   }
 
   function buildPieSvg(rows, total, colors, kind) {

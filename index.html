@@ -8,9 +8,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="本地账本">
     <title>本地账本</title>
-    <link rel="manifest" href="manifest.json?v=8">
+    <link rel="manifest" href="manifest.json?v=9">
     <link rel="apple-touch-icon" href="icon.svg">
-    <link rel="stylesheet" href="styles.css?v=8">
+    <link rel="stylesheet" href="styles.css?v=9">
   </head>
   <body>
     <div class="app-shell">
@@ -70,19 +70,10 @@
 
           <section class="panel">
             <div class="panel-title">
-              <h3>今日分类占比</h3>
+              <h3>今日收支分类对比</h3>
               <span class="muted" id="todayPieHint">--</span>
             </div>
-            <div class="pie-grid">
-              <div class="pie-card">
-                <h4>收入分类</h4>
-                <div id="todayIncomePie" class="pie-box"></div>
-              </div>
-              <div class="pie-card">
-                <h4>支出分类</h4>
-                <div id="todayExpensePie" class="pie-box"></div>
-              </div>
-            </div>
+            <div id="todayComparePie" class="pie-compare-box"></div>
           </section>
 
           <section class="panel">
@@ -423,6 +414,6 @@
       <div class="empty-state">暂无记录</div>
     </template>
 
-    <script src="app.js?v=8"></script>
+    <script src="app.js?v=9"></script>
   </body>
 </html>

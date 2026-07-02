@@ -586,48 +586,48 @@ button:disabled {
   gap: 16px;
 }
 
-.pie-grid {
-  display: grid;
-  gap: 12px;
+.pie-compare-box {
+  min-width: 0;
 }
 
-.pie-card {
-  min-width: 0;
+.pie-compare-content {
+  display: grid;
+  gap: 12px;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 7px;
   background: var(--surface-strong);
 }
 
-.pie-card h4 {
-  color: var(--text);
-}
-
-.pie-box {
-  min-width: 0;
-}
-
-.pie-content {
-  display: grid;
-  gap: 12px;
-}
-
-.pie-chart {
+.pie-compare-chart {
   display: block;
-  width: min(180px, 100%);
+  width: min(320px, 100%);
   height: auto;
   margin: 0 auto;
 }
 
-.pie-chart text {
+.pie-compare-chart text {
   fill: var(--text);
   font-size: 10px;
   font-weight: 800;
 }
 
-.pie-legend {
+.pie-legend-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pie-legend-group {
   display: grid;
   gap: 7px;
+  min-width: 0;
+}
+
+.pie-legend-title {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .pie-legend-row {
@@ -868,7 +868,6 @@ button:disabled {
   .form-grid,
   .category-blocks,
   .category-manager,
-  .pie-grid,
   .total-ledger-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
