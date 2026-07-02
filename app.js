@@ -72,6 +72,9 @@
       "todayExpense",
       "monthIncome",
       "monthExpense",
+      "todayPieHint",
+      "todayIncomePie",
+      "todayExpensePie",
       "yearMonthBars",
       "yearMonthHint",
       "entryCount",
@@ -855,6 +858,9 @@
     els.yearBalance.textContent = formatMoney(yearSummary.balance);
     els.entryCount.textContent = getLedgerRecordCount() + " 条";
 
+    els.todayPieHint.textContent = formatDisplayDate(today) + " · 按分类";
+    renderPieBreakdown(els.todayIncomePie, todayEntries, "income");
+    renderPieBreakdown(els.todayExpensePie, todayEntries, "expense");
     renderEntries(els.recentEntries, getSortedLedgerItems(getAllLedgerItems()).slice(0, 8));
     renderYearMonthBars(thisYear);
   }
@@ -1044,6 +1050,113 @@
         "</article>";
     }
     container.innerHTML = html;
+  }
+
+  function renderPieBreakdown(container, entries, kind) {
+    var rows = getCategoryRows(entries, kind);
+    if (!rows.length) {
+      renderEmpty(container);
+      return;
+    }
+
+    var total = 0;
+    for (var i = 0; i < rows.length; i += 1) {
+      total = roundMoney(total + rows[i].amount);
+    }
+
+    var colors = kind === "income"
+      ? ["#cf3e48", "#e06a73", "#a9323c", "#ef9aa1", "#7b2d4f", "#c78aa4"]
+      : ["#267a63", "#4f9a82", "#1b5f4d", "#86b9a8", "#7b2d4f", "#b6a0ae"];
+
+    var svg = buildPieSvg(rows, total, colors, kind);
+    var legend = "";
+    for (var j = 0; j < rows.length; j += 1) {
+      var percent = total > 0 ? Math.round((rows[j].amount / total) * 100) : 0;
+      legend +=
+        '<div class="pie-legend-row">' +
+          '<i class="pie-dot" style="--dot: ' + colors[j % colors.length] + '"></i>' +
+          "<b>" + escapeHtml(rows[j].category) + "</b>" +
+          "<span>" + formatMoney(rows[j].amount) + " · " + percent + "%</span>" +
+        "</div>";
+    }
+
+    container.innerHTML =
+      '<div class="pie-content">' +
+        svg +
+        '<div class="pie-legend">' + legend + "</div>" +
+      "</div>";
+  }
+
+  function getCategoryRows(entries, kind) {
+    var totals = {};
+    for (var i = 0; i < entries.length; i += 1) {
+      var entry = entries[i];
+      if (entry.type === kind) {
+        totals[entry.category] = roundMoney((totals[entry.category] || 0) + entry.amount);
+      }
+    }
+
+    var rows = [];
+    for (var category in totals) {
+      if (Object.prototype.hasOwnProperty.call(totals, category)) {
+        rows.push({ category: category, amount: totals[category] });
+      }
+    }
+    rows.sort(function (a, b) {
+      return b.amount - a.amount;
+    });
+    return rows;
+  }
+
+  function buildPieSvg(rows, total, colors, kind) {
+    var cx = 60;
+    var cy = 60;
+    var radius = 48;
+    var startAngle = -90;
+    var paths = "";
+
+    if (rows.length === 1) {
+      paths =
+        '<circle cx="' + cx + '" cy="' + cy + '" r="' + radius + '" fill="' + colors[0] + '"></circle>';
+    } else {
+      for (var i = 0; i < rows.length; i += 1) {
+        var sweep = total > 0 ? (rows[i].amount / total) * 360 : 0;
+        var endAngle = startAngle + sweep;
+        paths += describePieSlice(cx, cy, radius, startAngle, endAngle, colors[i % colors.length]);
+        startAngle = endAngle;
+      }
+    }
+
+    return (
+      '<svg class="pie-chart" viewBox="0 0 120 120" role="img" aria-label="' + typeLabel(kind) + '分类占比">' +
+        paths +
+        '<circle cx="60" cy="60" r="24" fill="var(--surface)"></circle>' +
+        '<text x="60" y="57" text-anchor="middle">' + typeLabel(kind) + '</text>' +
+        '<text x="60" y="71" text-anchor="middle">' + formatCompactMoney(total) + '</text>' +
+      "</svg>"
+    );
+  }
+
+  function describePieSlice(cx, cy, radius, startAngle, endAngle, color) {
+    var start = polarToCartesian(cx, cy, radius, endAngle);
+    var end = polarToCartesian(cx, cy, radius, startAngle);
+    var largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+    var d = [
+      "M", cx, cy,
+      "L", start.x, start.y,
+      "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y,
+      "Z"
+    ].join(" ");
+
+    return '<path d="' + d + '" fill="' + color + '"></path>';
+  }
+
+  function polarToCartesian(cx, cy, radius, angleInDegrees) {
+    var angleInRadians = (angleInDegrees * Math.PI) / 180;
+    return {
+      x: roundChartNumber(cx + radius * Math.cos(angleInRadians)),
+      y: roundChartNumber(cy + radius * Math.sin(angleInRadians))
+    };
   }
 
   function renderCategoryChips(container, kind) {
@@ -1487,6 +1600,17 @@
     return Number(value || 0).toFixed(2);
   }
 
+  function formatCompactMoney(value) {
+    value = Number(value || 0);
+    if (Math.abs(value) >= 10000) {
+      return "¥" + (value / 10000).toFixed(1) + "万";
+    }
+    if (Math.abs(value) >= 1000) {
+      return "¥" + Math.round(value);
+    }
+    return "¥" + value.toFixed(0);
+  }
+
   function formatMonth(month) {
     if (!/^\d{4}-\d{2}$/.test(month)) return "--";
     var parts = month.split("-");
@@ -1558,6 +1682,10 @@
 
   function roundMoney(value) {
     return Math.round((Number(value) + 0.0000001) * 100) / 100;
+  }
+
+  function roundChartNumber(value) {
+    return Math.round(value * 1000) / 1000;
   }
 
   function readMoneyInput(input) {

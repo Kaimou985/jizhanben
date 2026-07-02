@@ -586,6 +586,80 @@ button:disabled {
   gap: 16px;
 }
 
+.pie-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.pie-card {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-strong);
+}
+
+.pie-card h4 {
+  color: var(--text);
+}
+
+.pie-box {
+  min-width: 0;
+}
+
+.pie-content {
+  display: grid;
+  gap: 12px;
+}
+
+.pie-chart {
+  display: block;
+  width: min(180px, 100%);
+  height: auto;
+  margin: 0 auto;
+}
+
+.pie-chart text {
+  fill: var(--text);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.pie-legend {
+  display: grid;
+  gap: 7px;
+}
+
+.pie-legend-row {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  gap: 7px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.pie-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--dot);
+}
+
+.pie-legend-row b {
+  min-width: 0;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pie-legend-row span {
+  text-align: right;
+  white-space: nowrap;
+}
+
 .category-row {
   overflow: hidden;
   padding: 10px 11px;
@@ -794,6 +868,7 @@ button:disabled {
   .form-grid,
   .category-blocks,
   .category-manager,
+  .pie-grid,
   .total-ledger-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
