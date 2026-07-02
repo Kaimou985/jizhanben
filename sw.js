@@ -1,10 +1,10 @@
-const CACHE_NAME = "local-ledger-v1";
+const CACHE_NAME = "local-ledger-v2";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css",
-  "./app.js",
-  "./manifest.json",
+  "./styles.css?v=2",
+  "./app.js?v=2",
+  "./manifest.json?v=2",
   "./icon.svg",
 ];
 
