@@ -1119,24 +1119,26 @@
 
   function buildComparePieSvg(incomeRows, incomeTotal, expenseRows, expenseTotal, incomeColors, expenseColors) {
     return (
-      '<svg class="pie-compare-chart" viewBox="0 0 260 132" role="img" aria-label="今日收入支出分类对比">' +
-        buildPieGroup(incomeRows, incomeTotal, incomeColors, "收入", 68, 62) +
-        buildPieGroup(expenseRows, expenseTotal, expenseColors, "支出", 192, 62) +
-        '<text x="68" y="124" text-anchor="middle">收入分类</text>' +
-        '<text x="192" y="124" text-anchor="middle">支出分类</text>' +
+      '<svg class="pie-compare-chart" viewBox="0 0 320 170" role="img" aria-label="今日收入支出分类对比">' +
+        buildPieGroup(incomeRows, incomeTotal, incomeColors, "收入", 82, 78) +
+        buildPieGroup(expenseRows, expenseTotal, expenseColors, "支出", 238, 78) +
+        '<text class="pie-caption-text" x="82" y="158" text-anchor="middle">收入分类</text>' +
+        '<text class="pie-caption-text" x="238" y="158" text-anchor="middle">支出分类</text>' +
       "</svg>"
     );
   }
 
   function buildPieGroup(rows, total, colors, label, cx, cy) {
-    var radius = 46;
+    var radius = 62;
+    var innerRadius = 39;
     var paths = "";
     var startAngle = -90;
+    var totalText = formatCompactMoney(total);
 
     if (!rows.length || total <= 0) {
       paths =
         '<circle cx="' + cx + '" cy="' + cy + '" r="' + radius + '" fill="var(--surface)" stroke="var(--line)" stroke-width="2"></circle>' +
-        '<circle cx="' + cx + '" cy="' + cy + '" r="24" fill="var(--surface-strong)"></circle>';
+        '<circle cx="' + cx + '" cy="' + cy + '" r="' + innerRadius + '" fill="var(--surface-strong)"></circle>';
     } else if (rows.length === 1) {
       paths = '<circle cx="' + cx + '" cy="' + cy + '" r="' + radius + '" fill="' + colors[0] + '"></circle>';
     } else {
@@ -1150,9 +1152,9 @@
 
     return (
       paths +
-      '<circle cx="' + cx + '" cy="' + cy + '" r="23" fill="var(--surface)"></circle>' +
-      '<text x="' + cx + '" y="' + (cy - 4) + '" text-anchor="middle">' + label + '</text>' +
-      '<text x="' + cx + '" y="' + (cy + 10) + '" text-anchor="middle">' + formatCompactMoney(total) + '</text>'
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + innerRadius + '" fill="var(--surface)"></circle>' +
+      '<text class="pie-label-text" x="' + cx + '" y="' + (cy - 5) + '" text-anchor="middle">' + label + '</text>' +
+      '<text class="pie-total-text" x="' + cx + '" y="' + (cy + 12) + '" text-anchor="middle"' + fitSvgAmountText(totalText) + '>' + totalText + '</text>'
     );
   }
 
@@ -1698,13 +1700,11 @@
 
   function formatCompactMoney(value) {
     value = Number(value || 0);
-    if (Math.abs(value) >= 10000) {
-      return "¥" + (value / 10000).toFixed(1) + "万";
-    }
-    if (Math.abs(value) >= 1000) {
-      return "¥" + Math.round(value);
-    }
-    return "¥" + value.toFixed(0);
+    return "¥" + value.toFixed(2);
+  }
+
+  function fitSvgAmountText(text) {
+    return String(text).length > 9 ? ' textLength="78" lengthAdjust="spacingAndGlyphs"' : "";
   }
 
   function formatMonth(month) {
