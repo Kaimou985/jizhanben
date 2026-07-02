@@ -23,6 +23,7 @@
   var numberFormatter;
   var weekdayFormatter;
   var els = {};
+  var pickerControls = [];
 
   try {
     currency = new Intl.NumberFormat("zh-CN", {
@@ -54,6 +55,7 @@
     els.monthPicker.value = state.selectedMonth;
     els.dailyTotalDate.value = state.selectedDay;
     els.monthlyTotalMonth.value = state.selectedMonth;
+    setupPickerControls();
     renderAll();
     registerServiceWorker();
   }
@@ -155,35 +157,44 @@
 
     els.dailyTotalDate.addEventListener("change", function () {
       els.dailyTotalDate.value = normalizeDateValue(els.dailyTotalDate.value) || state.selectedDay;
+      syncPickerByTarget("dailyTotalDate");
     });
     els.dailyTotalDate.addEventListener("blur", function () {
       els.dailyTotalDate.value = normalizeDateValue(els.dailyTotalDate.value) || state.selectedDay;
+      syncPickerByTarget("dailyTotalDate");
     });
     els.monthlyTotalMonth.addEventListener("change", function () {
       els.monthlyTotalMonth.value = normalizeMonthValue(els.monthlyTotalMonth.value) || state.selectedMonth;
+      syncPickerByTarget("monthlyTotalMonth");
     });
     els.monthlyTotalMonth.addEventListener("blur", function () {
       els.monthlyTotalMonth.value = normalizeMonthValue(els.monthlyTotalMonth.value) || state.selectedMonth;
+      syncPickerByTarget("monthlyTotalMonth");
     });
 
     els.dateInput.addEventListener("change", function () {
       els.dateInput.value = normalizeDateValue(els.dateInput.value) || state.selectedDay;
       if (els.dateInput.value) els.dailyTotalDate.value = els.dateInput.value;
+      syncPickerByTarget("dateInput");
+      syncPickerByTarget("dailyTotalDate");
       renderFormDay();
     });
     els.dateInput.addEventListener("blur", function () {
       els.dateInput.value = normalizeDateValue(els.dateInput.value) || state.selectedDay;
+      syncPickerByTarget("dateInput");
       renderFormDay();
     });
 
     els.dayPicker.addEventListener("change", function () {
       state.selectedDay = normalizeDateValue(els.dayPicker.value) || toDateInputValue(new Date());
       els.dayPicker.value = state.selectedDay;
+      syncPickerByTarget("dayPicker");
       renderDay();
     });
     els.dayPicker.addEventListener("blur", function () {
       state.selectedDay = normalizeDateValue(els.dayPicker.value) || state.selectedDay;
       els.dayPicker.value = state.selectedDay;
+      syncPickerByTarget("dayPicker");
       renderDay();
     });
 
@@ -191,12 +202,16 @@
       state.selectedMonth = normalizeMonthValue(els.monthPicker.value) || toMonthInputValue(new Date());
       els.monthPicker.value = state.selectedMonth;
       els.monthlyTotalMonth.value = state.selectedMonth;
+      syncPickerByTarget("monthPicker");
+      syncPickerByTarget("monthlyTotalMonth");
       renderMonth();
     });
     els.monthPicker.addEventListener("blur", function () {
       state.selectedMonth = normalizeMonthValue(els.monthPicker.value) || state.selectedMonth;
       els.monthPicker.value = state.selectedMonth;
       els.monthlyTotalMonth.value = state.selectedMonth;
+      syncPickerByTarget("monthPicker");
+      syncPickerByTarget("monthlyTotalMonth");
       renderMonth();
     });
 
@@ -231,6 +246,7 @@
       if (dayButton) {
         state.selectedDay = dayButton.getAttribute("data-open-day");
         els.dayPicker.value = state.selectedDay;
+        syncPickerByTarget("dayPicker");
         setView("day");
         renderDay();
         return;
@@ -244,6 +260,174 @@
         );
       }
     });
+  }
+
+  function setupPickerControls() {
+    pickerControls = [];
+
+    forEachNode(document.querySelectorAll("[data-date-target]"), function (picker) {
+      createDatePicker(picker);
+    });
+
+    forEachNode(document.querySelectorAll("[data-month-target]"), function (picker) {
+      createMonthPicker(picker);
+    });
+
+    syncAllPickerControls();
+  }
+
+  function createDatePicker(picker) {
+    var targetId = picker.getAttribute("data-date-target");
+    var target = document.getElementById(targetId);
+    var yearSelect = picker.querySelector('[data-picker="year"]');
+    var monthSelect = picker.querySelector('[data-picker="month"]');
+    var daySelect = picker.querySelector('[data-picker="day"]');
+    var value = normalizeDateValue(target.value) || state.selectedDay || toDateInputValue(new Date());
+    var parts = value.split("-");
+
+    fillYearOptions(yearSelect, Number(parts[0]));
+    fillMonthOptions(monthSelect);
+    yearSelect.value = parts[0];
+    monthSelect.value = parts[1];
+    fillDayOptions(daySelect, Number(parts[0]), Number(parts[1]), Number(parts[2]));
+    daySelect.value = parts[2];
+
+    var control = {
+      kind: "date",
+      targetId: targetId,
+      target: target,
+      picker: picker,
+      yearSelect: yearSelect,
+      monthSelect: monthSelect,
+      daySelect: daySelect
+    };
+    pickerControls.push(control);
+
+    var onChange = function () {
+      var year = Number(yearSelect.value);
+      var month = Number(monthSelect.value);
+      var currentDay = Number(daySelect.value);
+      fillDayOptions(daySelect, year, month, currentDay);
+      target.value = yearSelect.value + "-" + monthSelect.value + "-" + daySelect.value;
+      triggerChange(target);
+    };
+
+    yearSelect.addEventListener("change", onChange);
+    monthSelect.addEventListener("change", onChange);
+    daySelect.addEventListener("change", onChange);
+  }
+
+  function createMonthPicker(picker) {
+    var targetId = picker.getAttribute("data-month-target");
+    var target = document.getElementById(targetId);
+    var yearSelect = picker.querySelector('[data-picker="year"]');
+    var monthSelect = picker.querySelector('[data-picker="month"]');
+    var value = normalizeMonthValue(target.value) || state.selectedMonth || toMonthInputValue(new Date());
+    var parts = value.split("-");
+
+    fillYearOptions(yearSelect, Number(parts[0]));
+    fillMonthOptions(monthSelect);
+    yearSelect.value = parts[0];
+    monthSelect.value = parts[1];
+
+    var control = {
+      kind: "month",
+      targetId: targetId,
+      target: target,
+      picker: picker,
+      yearSelect: yearSelect,
+      monthSelect: monthSelect
+    };
+    pickerControls.push(control);
+
+    var onChange = function () {
+      target.value = yearSelect.value + "-" + monthSelect.value;
+      triggerChange(target);
+    };
+
+    yearSelect.addEventListener("change", onChange);
+    monthSelect.addEventListener("change", onChange);
+  }
+
+  function syncAllPickerControls() {
+    for (var i = 0; i < pickerControls.length; i += 1) {
+      syncPickerControl(pickerControls[i]);
+    }
+  }
+
+  function syncPickerByTarget(targetId) {
+    for (var i = 0; i < pickerControls.length; i += 1) {
+      if (pickerControls[i].targetId === targetId) {
+        syncPickerControl(pickerControls[i]);
+      }
+    }
+  }
+
+  function syncPickerControl(control) {
+    if (control.kind === "date") {
+      var dateValue = normalizeDateValue(control.target.value) || state.selectedDay || toDateInputValue(new Date());
+      var dateParts = dateValue.split("-");
+      ensureYearOption(control.yearSelect, Number(dateParts[0]));
+      control.yearSelect.value = dateParts[0];
+      control.monthSelect.value = dateParts[1];
+      fillDayOptions(control.daySelect, Number(dateParts[0]), Number(dateParts[1]), Number(dateParts[2]));
+      control.daySelect.value = dateParts[2];
+      control.target.value = dateValue;
+      return;
+    }
+
+    var monthValue = normalizeMonthValue(control.target.value) || state.selectedMonth || toMonthInputValue(new Date());
+    var monthParts = monthValue.split("-");
+    ensureYearOption(control.yearSelect, Number(monthParts[0]));
+    control.yearSelect.value = monthParts[0];
+    control.monthSelect.value = monthParts[1];
+    control.target.value = monthValue;
+  }
+
+  function fillYearOptions(select, selectedYear) {
+    var currentYear = new Date().getFullYear();
+    var start = Math.min(currentYear - 15, selectedYear);
+    var end = Math.max(currentYear + 5, selectedYear);
+    var html = "";
+    for (var year = start; year <= end; year += 1) {
+      html += '<option value="' + year + '">' + year + "年</option>";
+    }
+    select.innerHTML = html;
+  }
+
+  function ensureYearOption(select, year) {
+    if (!select.querySelector('option[value="' + year + '"]')) {
+      fillYearOptions(select, year);
+    }
+  }
+
+  function fillMonthOptions(select) {
+    var html = "";
+    for (var month = 1; month <= 12; month += 1) {
+      html += '<option value="' + pad2(month) + '">' + month + "月</option>";
+    }
+    select.innerHTML = html;
+  }
+
+  function fillDayOptions(select, year, month, selectedDay) {
+    var maxDay = new Date(year, month, 0).getDate();
+    var day = Math.min(Math.max(Number(selectedDay) || 1, 1), maxDay);
+    var html = "";
+    for (var i = 1; i <= maxDay; i += 1) {
+      html += '<option value="' + pad2(i) + '">' + i + "日</option>";
+    }
+    select.innerHTML = html;
+    select.value = pad2(day);
+  }
+
+  function triggerChange(target) {
+    if (typeof Event === "function") {
+      target.dispatchEvent(new Event("change", { bubbles: true }));
+    } else {
+      var event = document.createEvent("Event");
+      event.initEvent("change", true, true);
+      target.dispatchEvent(event);
+    }
   }
 
   function loadState() {
@@ -640,6 +824,7 @@
   }
 
   function renderAll() {
+    syncAllPickerControls();
     renderCategoryOptions();
     renderOverview();
     renderFormDay();

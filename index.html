@@ -8,9 +8,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="本地账本">
     <title>本地账本</title>
-    <link rel="manifest" href="manifest.json?v=5">
+    <link rel="manifest" href="manifest.json?v=6">
     <link rel="apple-touch-icon" href="icon.svg">
-    <link rel="stylesheet" href="styles.css?v=5">
+    <link rel="stylesheet" href="styles.css?v=6">
   </head>
   <body>
     <div class="app-shell">
@@ -106,8 +106,13 @@
 
             <div class="form-grid">
               <label class="field">
-                <span>日期（如 2026-07-02）</span>
-                <input id="dateInput" name="date" class="date-text-input" type="text" inputmode="numeric" maxlength="10" placeholder="2026-07-02" required>
+                <span>日期</span>
+                <input id="dateInput" name="date" type="hidden" required>
+                <div class="picker-row date-picker" data-date-target="dateInput" aria-label="选择日期">
+                  <select data-picker="year" aria-label="年"></select>
+                  <select data-picker="month" aria-label="月"></select>
+                  <select data-picker="day" aria-label="日"></select>
+                </div>
               </label>
               <label class="field">
                 <span>分类</span>
@@ -132,8 +137,13 @@
               <form class="total-form" id="dailyTotalForm" autocomplete="off">
                 <h4>每天总账</h4>
                 <label class="field">
-                  <span>日期（如 2026-07-02）</span>
-                  <input id="dailyTotalDate" class="date-text-input" type="text" inputmode="numeric" maxlength="10" placeholder="2026-07-02" required>
+                  <span>日期</span>
+                  <input id="dailyTotalDate" type="hidden" required>
+                  <div class="picker-row date-picker" data-date-target="dailyTotalDate" aria-label="选择日期">
+                    <select data-picker="year" aria-label="年"></select>
+                    <select data-picker="month" aria-label="月"></select>
+                    <select data-picker="day" aria-label="日"></select>
+                  </div>
                 </label>
                 <div class="form-grid">
                   <label class="field">
@@ -155,8 +165,12 @@
               <form class="total-form" id="monthlyTotalForm" autocomplete="off">
                 <h4>每月总账</h4>
                 <label class="field">
-                  <span>月份（如 2026-07）</span>
-                  <input id="monthlyTotalMonth" class="date-text-input" type="text" inputmode="numeric" maxlength="7" placeholder="2026-07" required>
+                  <span>月份</span>
+                  <input id="monthlyTotalMonth" type="hidden" required>
+                  <div class="picker-row month-picker" data-month-target="monthlyTotalMonth" aria-label="选择月份">
+                    <select data-picker="year" aria-label="年"></select>
+                    <select data-picker="month" aria-label="月"></select>
+                  </div>
                 </label>
                 <div class="form-grid">
                   <label class="field">
@@ -193,8 +207,13 @@
               <p class="muted">查看每天的收入、支出和分类明细</p>
             </div>
             <label class="compact-field">
-              <span>日期（如 2026-07-02）</span>
-              <input id="dayPicker" class="date-text-input" type="text" inputmode="numeric" maxlength="10" placeholder="2026-07-02">
+              <span>日期</span>
+              <input id="dayPicker" type="hidden">
+              <div class="picker-row date-picker" data-date-target="dayPicker" aria-label="选择日期">
+                <select data-picker="year" aria-label="年"></select>
+                <select data-picker="month" aria-label="月"></select>
+                <select data-picker="day" aria-label="日"></select>
+              </div>
             </label>
           </div>
 
@@ -246,8 +265,12 @@
               <p class="muted">按月份统计每天和每类收支</p>
             </div>
             <label class="compact-field">
-              <span>月份（如 2026-07）</span>
-              <input id="monthPicker" class="date-text-input" type="text" inputmode="numeric" maxlength="7" placeholder="2026-07">
+              <span>月份</span>
+              <input id="monthPicker" type="hidden">
+              <div class="picker-row month-picker" data-month-target="monthPicker" aria-label="选择月份">
+                <select data-picker="year" aria-label="年"></select>
+                <select data-picker="month" aria-label="月"></select>
+              </div>
             </label>
           </div>
 
@@ -383,6 +406,6 @@
       <div class="empty-state">暂无记录</div>
     </template>
 
-    <script src="app.js?v=5"></script>
+    <script src="app.js?v=6"></script>
   </body>
 </html>

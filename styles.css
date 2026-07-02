@@ -436,6 +436,7 @@ button:disabled {
 .field input,
 .field select,
 .compact-field input,
+.compact-field select,
 .inline-form input,
 .file-import input {
   width: 100%;
@@ -450,25 +451,42 @@ button:disabled {
   outline: none;
 }
 
-.date-text-input {
-  appearance: none;
-  -webkit-appearance: none;
-  display: block;
+.picker-row {
+  display: grid;
+  gap: 8px;
   width: 100%;
-  font-size: 16px;
-  font-weight: 800;
-  text-align: center;
-  letter-spacing: 0;
+  min-width: 0;
 }
 
-.date-text-input::placeholder {
-  color: #9aa5a1;
-  font-weight: 700;
+.date-picker {
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.month-picker {
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+}
+
+.picker-row select {
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0 8px;
+  color: var(--text);
+  background:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%) right 12px center / 6px 6px no-repeat,
+    #fff;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: center;
+  text-align-last: center;
+  letter-spacing: 0;
 }
 
 .field input:focus,
 .field select:focus,
 .compact-field input:focus,
+.compact-field select:focus,
 .inline-form input:focus {
   border-color: var(--brand);
   box-shadow: 0 0 0 3px rgba(23, 107, 91, 0.12);
@@ -767,7 +785,7 @@ button:disabled {
   }
 
   .compact-field {
-    width: min(220px, 42vw);
+    width: min(320px, 48vw);
   }
 
   .form-grid,
