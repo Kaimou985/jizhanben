@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#176b5b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="本地账本">
+    <title>本地账本</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">本地账本</p>
+          <h1>记账</h1>
+        </div>
+        <button class="round-action" id="quickAddBtn" type="button" aria-label="记一笔" title="记一笔">+</button>
+      </header>
+
+      <main class="app-main">
+        <section class="view is-active" id="view-overview" data-view="overview" aria-labelledby="overviewTitle">
+          <div class="section-head">
+            <div>
+              <h2 id="overviewTitle">总览</h2>
+              <p id="todayText" class="muted">--</p>
+            </div>
+            <button class="ghost-button" id="seedSampleBtn" type="button">示例数据</button>
+          </div>
+
+          <div class="summary-panel year-panel">
+            <div>
+              <span class="summary-label">今年截止今日结余</span>
+              <strong id="yearBalance">¥0.00</strong>
+            </div>
+            <div class="pair-grid">
+              <div>
+                <span>总收入</span>
+                <b id="yearIncome">¥0.00</b>
+              </div>
+              <div>
+                <span>总支出</span>
+                <b id="yearExpense">¥0.00</b>
+              </div>
+            </div>
+          </div>
+
+          <div class="metric-grid">
+            <article class="metric-card">
+              <span>今日收入</span>
+              <strong id="todayIncome">¥0.00</strong>
+            </article>
+            <article class="metric-card">
+              <span>今日支出</span>
+              <strong id="todayExpense">¥0.00</strong>
+            </article>
+            <article class="metric-card">
+              <span>本月收入</span>
+              <strong id="monthIncome">¥0.00</strong>
+            </article>
+            <article class="metric-card">
+              <span>本月支出</span>
+              <strong id="monthExpense">¥0.00</strong>
+            </article>
+          </div>
+
+          <section class="panel">
+            <div class="panel-title">
+              <h3>今年月度对比</h3>
+              <span id="yearMonthHint" class="muted">--</span>
+            </div>
+            <div class="month-bars" id="yearMonthBars"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-title">
+              <h3>最近记录</h3>
+              <span class="muted" id="entryCount">0 笔</span>
+            </div>
+            <div class="entry-list" id="recentEntries"></div>
+          </section>
+        </section>
+
+        <section class="view" id="view-add" data-view="add" aria-labelledby="addTitle">
+          <div class="section-head">
+            <div>
+              <h2 id="addTitle">记一笔</h2>
+              <p class="muted">收入、支出都会自动进入日账、月账和年度统计</p>
+            </div>
+          </div>
+
+          <form class="entry-form panel" id="entryForm" autocomplete="off">
+            <div class="segmented" role="tablist" aria-label="记录类型">
+              <button class="segment is-active" data-entry-type="expense" type="button">支出</button>
+              <button class="segment" data-entry-type="income" type="button">收入</button>
+            </div>
+
+            <label class="field">
+              <span>金额</span>
+              <input id="amountInput" name="amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" required>
+            </label>
+
+            <div class="form-grid">
+              <label class="field">
+                <span>日期</span>
+                <input id="dateInput" name="date" type="date" required>
+              </label>
+              <label class="field">
+                <span>分类</span>
+                <select id="categoryInput" name="category" required></select>
+              </label>
+            </div>
+
+            <label class="field">
+              <span>备注</span>
+              <input id="noteInput" name="note" type="text" maxlength="80" placeholder="可选">
+            </label>
+
+            <button class="primary-button" type="submit">保存记录</button>
+          </form>
+
+          <section class="panel">
+            <div class="panel-title">
+              <h3>当天记录</h3>
+              <span class="muted" id="formDayHint">--</span>
+            </div>
+            <div class="entry-list" id="formDayEntries"></div>
+          </section>
+        </section>
+
+        <section class="view" id="view-day" data-view="day" aria-labelledby="dayTitle">
+          <div class="section-head stacked">
+            <div>
+              <h2 id="dayTitle">日账</h2>
+              <p class="muted">查看每天的收入、支出和分类明细</p>
+            </div>
+            <label class="compact-field">
+              <span>日期</span>
+              <input id="dayPicker" type="date">
+            </label>
+          </div>
+
+          <div class="metric-grid three">
+            <article class="metric-card">
+              <span>收入</span>
+              <strong id="dayIncome">¥0.00</strong>
+            </article>
+            <article class="metric-card">
+              <span>支出</span>
+              <strong id="dayExpense">¥0.00</strong>
+            </article>
+            <article class="metric-card">
+              <span>结余</span>
+              <strong id="dayBalance">¥0.00</strong>
+            </article>
+          </div>
+
+          <section class="panel">
+            <div class="panel-title">
+              <h3>当天分类</h3>
+              <span class="muted" id="dayCategoryHint">--</span>
+            </div>
+            <div class="category-blocks">
+              <div>
+                <h4>收入来源</h4>
+                <div id="dayIncomeCategories" class="category-list"></div>
+              </div>
+              <div>
+                <h4>支出去向</h4>
+                <div id="dayExpenseCategories" class="category-list"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-title">
+              <h3>当天明细</h3>
+              <span class="muted" id="dayEntryCount">0 笔</span>
+            </div>
+            <div class="entry-list" id="dayEntries"></div>
+          </section>
+        </section>
+
+        <section class="view" id="view-month" data-view="month" aria-labelledby="monthTitle">
+          <div class="section-head stacked">
+            <div>
+              <h2 id="monthTitle">月账</h2>
+              <p class="muted">按月份统计每天和每类收支</p>
+            </div>
+            <label class="compact-field">
+              <span>月份</span>
+              <input id="monthPicker" type="month">
+            </label>
+          </div>
+
+          <div class="summary-panel">
+            <div>
+              <span class="summary-label">本月结余</span>
+              <strong id="selectedMonthBalance">¥0.00</strong>
+            </div>
+            <div class="pair-grid">
+              <div>
+                <span>收入</span>
+                <b id="selectedMonthIncome">¥0.00</b>
+              </div>
+              <div>
+                <span>支出</span>
+                <b id="selectedMonthExpense">¥0.00</b>
+              </div>
+            </div>
+          </div>
+
+          <section class="panel">
+            <div class="panel-title">
+              <h3>每日汇总</h3>
+              <span id="dailySummaryHint" class="muted">--</span>
+            </div>
+            <div class="daily-list" id="dailySummaryList"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-title">
+              <h3>月度分类</h3>
+              <span class="muted" id="monthCategoryHint">--</span>
+            </div>
+            <div class="category-blocks">
+              <div>
+                <h4>收入分类</h4>
+                <div id="monthIncomeCategories" class="category-list"></div>
+              </div>
+              <div>
+                <h4>支出分类</h4>
+                <div id="monthExpenseCategories" class="category-list"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-title">
+              <h3>月度明细</h3>
+              <span class="muted" id="monthEntryCount">0 笔</span>
+            </div>
+            <div class="entry-list" id="monthEntries"></div>
+          </section>
+        </section>
+
+        <section class="view" id="view-settings" data-view="settings" aria-labelledby="settingsTitle">
+          <div class="section-head">
+            <div>
+              <h2 id="settingsTitle">设置</h2>
+              <p class="muted">分类、备份和数据管理</p>
+            </div>
+          </div>
+
+          <section class="panel">
+            <div class="panel-title">
+              <h3>分类管理</h3>
+              <span class="muted">用于新增记录时选择</span>
+            </div>
+            <div class="category-manager">
+              <div>
+                <h4>收入分类</h4>
+                <div id="incomeCategoryChips" class="chip-list"></div>
+                <div class="inline-form">
+                  <input id="newIncomeCategory" type="text" maxlength="12" placeholder="新增收入分类">
+                  <button class="secondary-button" id="addIncomeCategory" type="button">添加</button>
+                </div>
+              </div>
+              <div>
+                <h4>支出分类</h4>
+                <div id="expenseCategoryChips" class="chip-list"></div>
+                <div class="inline-form">
+                  <input id="newExpenseCategory" type="text" maxlength="12" placeholder="新增支出分类">
+                  <button class="secondary-button" id="addExpenseCategory" type="button">添加</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-title">
+              <h3>数据备份</h3>
+              <span class="muted">本地保存，建议定期导出</span>
+            </div>
+            <div class="button-row">
+              <button class="secondary-button" id="exportJsonBtn" type="button">导出 JSON</button>
+              <button class="secondary-button" id="exportCsvBtn" type="button">导出 CSV</button>
+            </div>
+            <label class="file-import">
+              <span>导入 JSON 备份</span>
+              <input id="importJsonInput" type="file" accept="application/json,.json">
+            </label>
+          </section>
+
+          <section class="panel danger-panel">
+            <div class="panel-title">
+              <h3>清空数据</h3>
+              <span class="muted">删除后不可恢复</span>
+            </div>
+            <button class="danger-button" id="clearDataBtn" type="button">清空全部记录</button>
+          </section>
+        </section>
+      </main>
+
+      <nav class="bottom-nav" aria-label="主导航">
+        <button class="nav-item is-active" type="button" data-target="overview">
+          <span>总览</span>
+        </button>
+        <button class="nav-item" type="button" data-target="add">
+          <span>记账</span>
+        </button>
+        <button class="nav-item" type="button" data-target="day">
+          <span>日账</span>
+        </button>
+        <button class="nav-item" type="button" data-target="month">
+          <span>月账</span>
+        </button>
+        <button class="nav-item" type="button" data-target="settings">
+          <span>设置</span>
+        </button>
+      </nav>
+    </div>
+
+    <template id="emptyTemplate">
+      <div class="empty-state">暂无记录</div>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>

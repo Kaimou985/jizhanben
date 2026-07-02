@@ -1,0 +1,19 @@
+{
+  "name": "本地账本",
+  "short_name": "账本",
+  "description": "一个本地保存的收入支出记账应用",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f7f4",
+  "theme_color": "#176b5b",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
