@@ -72,8 +72,13 @@
       "todayExpense",
       "monthIncome",
       "monthExpense",
+      "comparePieHint",
       "todayPieHint",
       "todayComparePie",
+      "monthPieHint",
+      "monthComparePie",
+      "yearPieHint",
+      "yearComparePie",
       "yearMonthBars",
       "yearMonthHint",
       "entryCount",
@@ -857,8 +862,13 @@
     els.yearBalance.textContent = formatMoney(yearSummary.balance);
     els.entryCount.textContent = getLedgerRecordCount() + " 条";
 
-    els.todayPieHint.textContent = formatDisplayDate(today) + " · 按分类";
+    els.comparePieHint.textContent = "当日 / 本月 / 当年";
+    els.todayPieHint.textContent = formatDisplayDate(today);
+    els.monthPieHint.textContent = formatMonth(thisMonth);
+    els.yearPieHint.textContent = thisYear + "年截止今日";
     renderComparePie(els.todayComparePie, todayEntries);
+    renderComparePie(els.monthComparePie, monthEntries);
+    renderComparePie(els.yearComparePie, yearEntries);
     renderEntries(els.recentEntries, getSortedLedgerItems(getAllLedgerItems()).slice(0, 8));
     renderYearMonthBars(thisYear);
   }

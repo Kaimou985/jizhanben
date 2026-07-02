@@ -590,13 +590,45 @@ button:disabled {
   min-width: 0;
 }
 
+.period-compare-list {
+  display: grid;
+  gap: 12px;
+}
+
+.period-compare-card {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-strong);
+}
+
+.period-compare-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.period-compare-head h4 {
+  margin: 0;
+  color: var(--text);
+}
+
+.period-compare-head span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .pie-compare-content {
   display: grid;
   gap: 12px;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: var(--surface-strong);
+  background: var(--surface);
 }
 
 .pie-compare-chart {

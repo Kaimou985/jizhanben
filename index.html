@@ -8,9 +8,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="本地账本">
     <title>本地账本</title>
-    <link rel="manifest" href="manifest.json?v=9">
+    <link rel="manifest" href="manifest.json?v=10">
     <link rel="apple-touch-icon" href="icon.svg">
-    <link rel="stylesheet" href="styles.css?v=9">
+    <link rel="stylesheet" href="styles.css?v=10">
   </head>
   <body>
     <div class="app-shell">
@@ -70,10 +70,32 @@
 
           <section class="panel">
             <div class="panel-title">
-              <h3>今日收支分类对比</h3>
-              <span class="muted" id="todayPieHint">--</span>
+              <h3>收支分类对比</h3>
+              <span class="muted" id="comparePieHint">当日 / 本月 / 当年</span>
             </div>
-            <div id="todayComparePie" class="pie-compare-box"></div>
+            <div class="period-compare-list">
+              <article class="period-compare-card">
+                <div class="period-compare-head">
+                  <h4>当日</h4>
+                  <span id="todayPieHint">--</span>
+                </div>
+                <div id="todayComparePie" class="pie-compare-box"></div>
+              </article>
+              <article class="period-compare-card">
+                <div class="period-compare-head">
+                  <h4>本月</h4>
+                  <span id="monthPieHint">--</span>
+                </div>
+                <div id="monthComparePie" class="pie-compare-box"></div>
+              </article>
+              <article class="period-compare-card">
+                <div class="period-compare-head">
+                  <h4>当年</h4>
+                  <span id="yearPieHint">--</span>
+                </div>
+                <div id="yearComparePie" class="pie-compare-box"></div>
+              </article>
+            </div>
           </section>
 
           <section class="panel">
@@ -414,6 +436,6 @@
       <div class="empty-state">暂无记录</div>
     </template>
 
-    <script src="app.js?v=9"></script>
+    <script src="app.js?v=10"></script>
   </body>
 </html>
